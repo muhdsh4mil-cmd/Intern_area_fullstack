@@ -11,10 +11,13 @@ import AdminDash from "./components/AdminDash";
 import EditResume from "./components/EditResume";
 import Preferences from "./components/Preferences";
 import MyApplications from "./components/MyApplications";
+import Friends from "./components/Friends";
+import Community from "./components/Community";
+import Messages from "./components/Messages";
 import { SUPERHERO_AVATARS } from "./data/avatars";
 import { submitApplication, fetchMyApplications, fetchAllApplications, updateApplicationStatus as updateAppStatusAPI, deleteApplication as deleteAppAPI } from "./api/applicationsAPI";
 import { createJob } from "./api/jobsAPI";
-import { logoutUser, googleLogin as apiGoogleLogin } from "./api/authAPI";
+import { logoutUser, googleLogin as apiGoogleLogin, getMe } from "./api/authAPI";
 import { auth, googleProvider } from "./config/firebase";
 import { signInWithPopup } from "firebase/auth";
 
@@ -42,6 +45,8 @@ export default function App() {
   const [selectedApplyJob, setSelectedApplyJob] = useState(null);
   const [resumeApplyReturnPending, setResumeApplyReturnPending] = useState(false);
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+  // Active chat friend ID — set when clicking Message from Friends page or navbar dropdown
+  const [activeChatFriendId, setActiveChatFriendId] = useState(null);
 
   // Restore session from localStorage on app load
   useEffect(() => {
@@ -51,11 +56,34 @@ export default function App() {
       try {
         const parsedUser = JSON.parse(savedUser);
         setUser(parsedUser);
+        
+        // Fetch fresh user data from backend to ensure we have latest fields (like uniqueId)
+        getMe()
+          .then((freshUser) => {
+            // preserve the token
+            const updatedUser = { ...freshUser, token: savedToken };
+            setUser(updatedUser);
+            localStorage.setItem("internarea_user", JSON.stringify(updatedUser));
+          })
+          .catch((err) => {
+            console.error("Failed to refresh user data", err);
+          });
       } catch (e) {
         localStorage.removeItem("internarea_user");
         localStorage.removeItem("internarea_token");
       }
     }
+  }, []);
+
+  // Synchronize authentication state across multiple tabs dynamically
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === "internarea_token" || e.key === "internarea_user") {
+        window.location.reload();
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   /** Keeps signed-in users off login/register modals until they log out */
@@ -368,6 +396,14 @@ export default function App() {
           addToast("Profile avatar updated successfully!", "success");
         }}
         onOpenAvatarModal={() => setAvatarModalOpen(true)}
+        onOpenMessages={(conv) => {
+          // conv may be a conversation object from the dropdown — extract the other participant id
+          if (conv && conv.participants) {
+            const other = conv.participants.find((p) => p._id !== user?._id);
+            if (other) setActiveChatFriendId(other._id);
+          }
+          setView("messages");
+        }}
       />
 
       {/* CORE VIEW ROUTER */}
@@ -416,11 +452,6 @@ export default function App() {
 
             {/* Premium CTA banner */}
             <section className="bg-slate-900 mx-4 sm:mx-8 lg:mx-12 rounded-3xl p-8 sm:p-12 text-white relative overflow-hidden mb-16 shadow-xl">
-              <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none transform translate-x-10 translate-y-10">
-                <svg className="w-80 h-80 text-primary-light" fill="currentColor" viewBox="0 0 100 100">
-                  <path d="M10 10 H 90 V 90 H 10 Z" />
-                </svg>
-              </div>
               
               <div className="max-w-3xl relative z-10 space-y-6">
                 <span className="bg-primary/20 text-primary-light text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest border border-primary/20 font-outfit">
@@ -569,6 +600,38 @@ export default function App() {
               user={user}
               applications={applications}
               setView={setView}
+            />
+          </div>
+        )}
+
+        {currentView === "friends" && user && (
+          <div className="animate-fade-in">
+            <Friends
+              user={user}
+              setView={setView}
+              onMessageFriend={(friendId) => {
+                setActiveChatFriendId(friendId);
+                setView("messages");
+              }}
+            />
+          </div>
+        )}
+
+        {currentView === "community" && user && (
+          <div className="animate-fade-in">
+            <Community
+              user={user}
+              setView={setView}
+              addToast={addToast}
+            />
+          </div>
+        )}
+
+        {currentView === "messages" && user && (
+          <div className="animate-fade-in">
+            <Messages
+              user={user}
+              initialFriendId={activeChatFriendId}
             />
           </div>
         )}

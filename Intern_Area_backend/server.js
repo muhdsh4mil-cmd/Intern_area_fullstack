@@ -26,6 +26,10 @@ app.use("/api/auth", require("./routes/auth"));
 app.use("/api/jobs", require("./routes/jobs"));
 app.use("/api/applications", require("./routes/applications"));
 app.use("/api/admin", require("./routes/admin"));
+app.use("/api/friends", require("./routes/friendRoutes"));
+app.use("/api/notifications", require("./routes/notificationRoutes"));
+app.use("/api/messages", require("./routes/messageRoutes"));
+app.use("/api/posts", require("./routes/postRoutes"));
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get("/", (req, res) => {
@@ -56,3 +60,4 @@ app.listen(PORT, () => {
   console.log(`🚀 InternArea API server running on http://localhost:${PORT}`);
   console.log(`📡 Environment: ${process.env.NODE_ENV}`);
 });
+

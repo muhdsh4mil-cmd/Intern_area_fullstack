@@ -1,12 +1,37 @@
 const asyncHandler = require("express-async-handler");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Notification = require("../models/Notification");
 
 // Generate JWT Token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: "30d",
   });
+};
+
+// Generate Unique ID
+const generateUniqueId = async (name) => {
+  let isUnique = false;
+  let uniqueId = "";
+  
+  let baseName = name.split(" ")[0].replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+  if (!baseName) baseName = "user";
+
+  while (!isUnique) {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let randomCombination = "";
+    for (let i = 0; i < 8; i++) {
+      randomCombination += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    uniqueId = `${baseName}_${randomCombination}`;
+    
+    const existingUser = await User.findOne({ uniqueId });
+    if (!existingUser) {
+      isUnique = true;
+    }
+  }
+  return uniqueId;
 };
 
 // @desc    Register new user
@@ -27,6 +52,9 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error("User with this email already exists");
   }
 
+  // Generate unique ID
+  const uniqueId = await generateUniqueId(name);
+
   // Create user
   const user = await User.create({
     name,
@@ -37,9 +65,27 @@ const registerUser = asyncHandler(async (req, res) => {
     isOnline: true,
     lastLogin: new Date(),
     loginCount: 1,
+    uniqueId,
   });
 
   if (user) {
+    // Notify existing users about the new member (up to 100 existing users)
+    const existingUsers = await User.find(
+      { _id: { $ne: user._id }, role: { $ne: "admin" } },
+      "_id"
+    ).limit(100);
+
+    if (existingUsers.length > 0) {
+      const notifications = existingUsers.map((u) => ({
+        recipient: u._id,
+        sender: user._id,
+        type: "new_suggestion",
+        message: `${user.name} just joined InternArea — People You May Know`,
+        meta: { newUserId: user._id.toString() },
+      }));
+      await Notification.insertMany(notifications);
+    }
+
     res.status(201).json({
       _id: user._id,
       name: user.name,
@@ -47,6 +93,7 @@ const registerUser = asyncHandler(async (req, res) => {
       role: user.role,
       company: user.company,
       avatar: user.avatar,
+      uniqueId: user.uniqueId,
       token: generateToken(user._id),
     });
   } else {
@@ -66,10 +113,17 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new Error("Please provide email and password");
   }
 
-  // Find user
-  const user = await User.findOne({ email });
+  // Find user by email or uniqueId (since admin login uses username)
+  const user = await User.findOne({
+    $or: [{ email: email }, { uniqueId: email }, { name: email }]
+  });
 
   if (user && (await user.matchPassword(password))) {
+    // Lazily generate uniqueId for older accounts that don't have one
+    if (!user.uniqueId) {
+      user.uniqueId = await generateUniqueId(user.name);
+    }
+    
     user.isOnline = true;
     user.lastLogin = new Date();
     user.loginCount = (user.loginCount || 0) + 1;
@@ -82,6 +136,7 @@ const loginUser = asyncHandler(async (req, res) => {
       role: user.role,
       company: user.company,
       avatar: user.avatar,
+      uniqueId: user.uniqueId,
       token: generateToken(user._id),
     });
   } else {
@@ -95,6 +150,13 @@ const loginUser = asyncHandler(async (req, res) => {
 // @access  Private
 const getMe = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id).select("-password");
+  
+  // Lazily generate uniqueId if missing
+  if (user && !user.uniqueId) {
+    user.uniqueId = await generateUniqueId(user.name);
+    await user.save();
+  }
+  
   res.json(user);
 });
 
@@ -134,6 +196,7 @@ const updateProfile = asyncHandler(async (req, res) => {
     location: updatedUser.location,
     phone: updatedUser.phone,
     skills: updatedUser.skills,
+    uniqueId: updatedUser.uniqueId,
     token: generateToken(updatedUser._id),
   });
 });
@@ -177,6 +240,8 @@ const googleLogin = asyncHandler(async (req, res) => {
     // Register new user as candidate via Google
     // Generate a random password since they use Google to log in
     const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+    const uniqueId = await generateUniqueId(name);
+    
     user = await User.create({
       name,
       email,
@@ -187,7 +252,25 @@ const googleLogin = asyncHandler(async (req, res) => {
       isOnline: true,
       lastLogin: new Date(),
       loginCount: 1,
+      uniqueId,
     });
+
+    // Notify existing users about the new Google-authenticated member
+    const existingUsers = await User.find(
+      { _id: { $ne: user._id }, role: { $ne: "admin" } },
+      "_id"
+    ).limit(100);
+
+    if (existingUsers.length > 0) {
+      const notifications = existingUsers.map((u) => ({
+        recipient: u._id,
+        sender: user._id,
+        type: "new_suggestion",
+        message: `${user.name} just joined InternArea — People You May Know`,
+        meta: { newUserId: user._id.toString() },
+      }));
+      await Notification.insertMany(notifications);
+    }
   }
 
   res.json({
@@ -197,6 +280,7 @@ const googleLogin = asyncHandler(async (req, res) => {
     role: user.role,
     company: user.company,
     avatar: user.avatar,
+    uniqueId: user.uniqueId,
     token: generateToken(user._id),
   });
 });

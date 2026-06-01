@@ -78,6 +78,7 @@ export default function EditResume({ user, setView, onSave, returnToApplyAfterRe
   });
 
   const [skillInput, setSkillInput] = useState("");
+  const [activeMobileTab, setActiveMobileTab] = useState("edit"); // "edit" or "preview"
 
   const isCleanSlate = !resume.name && !resume.email && !resume.phone && !resume.place && !resume.careerObjective && resume.education.length === 0 && resume.experience.length === 0 && resume.projects.length === 0 && resume.skills.length === 0 && !resume.portfolio.github && !resume.portfolio.linkedin && !resume.portfolio.website;
 
@@ -224,7 +225,7 @@ export default function EditResume({ user, setView, onSave, returnToApplyAfterRe
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20">
       {/* Header Banner */}
-      <div className="bg-white border-b border-slate-200 py-6 px-4 sm:px-6 lg:px-8 mb-8 sticky top-16 z-30 shadow-sm backdrop-blur-md bg-white/90 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="bg-white border-b border-slate-200 py-6 px-4 sm:px-6 lg:px-8 mb-8 lg:sticky lg:top-16 z-30 shadow-sm backdrop-blur-md bg-white/90 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <button 
             onClick={() => {
@@ -256,10 +257,39 @@ export default function EditResume({ user, setView, onSave, returnToApplyAfterRe
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        {/* LEFT COLUMN: Input Form */}
-        <div className="lg:col-span-7 space-y-6 max-h-[80vh] lg:overflow-y-auto lg:pr-3 scrollbar-thin print:hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Mobile View Navigation Tabs */}
+        <div className="lg:hidden flex border border-slate-200 rounded-xl mb-6 bg-slate-50 p-1">
+          <button
+            type="button"
+            onClick={() => setActiveMobileTab("edit")}
+            className={`flex-1 py-2.5 text-center text-xs font-bold rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeMobileTab === "edit"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            📝 Edit Details
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveMobileTab("preview")}
+            className={`flex-1 py-2.5 text-center text-xs font-bold rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeMobileTab === "preview"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            👁️ Live Preview
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* LEFT COLUMN: Input Form */}
+          <div className={`lg:col-span-7 space-y-6 lg:max-h-[80vh] lg:overflow-y-auto lg:pr-3 scrollbar-thin print:hidden ${
+            activeMobileTab === "edit" ? "block" : "hidden lg:block"
+          }`}>
           
           {/* 1. Personal Information */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm space-y-4">
@@ -657,7 +687,9 @@ export default function EditResume({ user, setView, onSave, returnToApplyAfterRe
         </div>
 
         {/* RIGHT COLUMN: Real-Time Preview (Prints in standard A4 sheet!) */}
-        <div className="lg:col-span-5 sticky top-[148px] bg-white border border-slate-200 rounded-2xl shadow-md p-8 min-h-[75vh] flex flex-col print:border-none print:shadow-none print:p-0 print:m-0 print:absolute print:inset-0 print:w-full print:h-full print:bg-white print:z-50 overflow-y-auto scrollbar-thin">
+        <div className={`lg:col-span-5 lg:sticky lg:top-[148px] bg-white border border-slate-200 rounded-2xl shadow-md p-4 sm:p-8 min-h-[75vh] flex flex-col print:border-none print:shadow-none print:p-0 print:m-0 print:absolute print:inset-0 print:w-full print:h-full print:bg-white print:z-50 overflow-y-auto scrollbar-thin ${
+          activeMobileTab === "preview" ? "flex" : "hidden lg:flex"
+        }`}>
           
           <div className="flex-1 space-y-6 print:space-y-4" id="resume-print-area">
             
@@ -691,12 +723,12 @@ export default function EditResume({ user, setView, onSave, returnToApplyAfterRe
                 <h4 className="font-outfit font-extrabold text-xs text-slate-900 uppercase tracking-wider border-b border-slate-300 pb-0.5">Education</h4>
                 <div className="space-y-2">
                   {(isCleanSlate ? fallbackDetails.education : resume.education).map((edu) => (
-                    <div key={edu.id} className="flex justify-between items-start text-[11px]">
-                      <div>
-                        <p className="font-bold text-slate-800">{edu.degree || "Degree/Course Name"}</p>
-                        <p className="text-slate-500 font-medium">{edu.school || "School/University Name"}</p>
+                    <div key={edu.id} className="flex justify-between items-start text-[11px] gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-slate-800 break-words">{edu.degree || "Degree/Course Name"}</p>
+                        <p className="text-slate-500 font-medium break-words">{edu.school || "School/University Name"}</p>
                       </div>
-                      <div className="text-right text-[10px] text-slate-500 font-bold whitespace-nowrap">
+                      <div className="text-right text-[10px] text-slate-500 font-bold whitespace-nowrap shrink-0">
                         <p>{edu.year || "Year"}</p>
                         <p className="text-primary font-extrabold">{edu.score || "Grade Score"}</p>
                       </div>
@@ -713,19 +745,19 @@ export default function EditResume({ user, setView, onSave, returnToApplyAfterRe
                 <div className="space-y-3">
                   {(isCleanSlate ? fallbackDetails.experience : resume.experience).map((exp) => (
                     <div key={exp.id} className="space-y-1">
-                      <div className="flex justify-between items-start text-[11px]">
-                        <div>
-                          <p className="font-bold text-slate-800">
-                            {exp.role || "Job Role"} 
-                            <span className={`ml-2 text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                      <div className="flex justify-between items-start text-[11px] gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-slate-800 flex items-center flex-wrap gap-1">
+                            <span>{exp.role || "Job Role"}</span>
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full inline-block shrink-0 ${
                               exp.type === "Internship" ? "bg-emerald-50 border border-emerald-200 text-emerald-700" : "bg-blue-50 border border-blue-200 text-blue-700"
                             }`}>
                               {exp.type}
                             </span>
                           </p>
-                          <p className="text-slate-500 font-medium">{exp.company || "Company Name"}</p>
+                          <p className="text-slate-500 font-medium break-words">{exp.company || "Company Name"}</p>
                         </div>
-                        <div className="text-right text-[10px] text-slate-500 font-bold whitespace-nowrap">
+                        <div className="text-right text-[10px] text-slate-500 font-bold whitespace-nowrap shrink-0">
                           <p>{exp.duration || "Duration"}</p>
                         </div>
                       </div>
@@ -747,9 +779,9 @@ export default function EditResume({ user, setView, onSave, returnToApplyAfterRe
                 <div className="space-y-3">
                   {(isCleanSlate ? fallbackDetails.projects : resume.projects).map((proj) => (
                     <div key={proj.id} className="space-y-1 text-[11px]">
-                      <div className="flex justify-between items-start">
-                        <p className="font-bold text-slate-800">{proj.title || "Project Title"}</p>
-                        <span className="text-[9px] font-bold text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">{proj.tech || "Tech Stack"}</span>
+                      <div className="flex justify-between items-start gap-2">
+                        <p className="font-bold text-slate-800 min-w-0 flex-1 break-words">{proj.title || "Project Title"}</p>
+                        <span className="text-[9px] font-bold text-slate-500 bg-slate-100 rounded px-1.5 py-0.5 shrink-0">{proj.tech || "Tech Stack"}</span>
                       </div>
                       {proj.description && (
                         <p className="text-[10px] text-slate-600 leading-normal text-justify">
@@ -808,6 +840,7 @@ export default function EditResume({ user, setView, onSave, returnToApplyAfterRe
         </div>
 
       </div>
+    </div>
 
       {/* Global CSS for Print Mode */}
       <style>{`

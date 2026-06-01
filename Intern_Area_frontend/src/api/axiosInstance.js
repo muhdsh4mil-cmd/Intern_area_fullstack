@@ -1,6 +1,9 @@
 import axios from "axios";
 
-const API_BASE_URL = "https://intern-area-fullstack.onrender.com/api";
+const API_BASE_URL =
+  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:5000/api"
+    : "https://intern-area-fullstack.onrender.com/api";
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,

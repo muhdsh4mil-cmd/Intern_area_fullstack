@@ -79,6 +79,45 @@ body {
   animation: float 6s ease-in-out infinite;
 }
 
+/* Fade In Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out both;
+}
+
+/* Slide Left Animation (toast) */
+@keyframes slideLeft {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-slide-left {
+  animation: slideLeft 0.3s ease-out both;
+}
+
+/* Scale Up Animation (modals) */
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-scale-up {
+  animation: scaleUp 0.25s ease-out both;
+}
+
+/* Hide scrollbar but keep scrolling */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Wave Background Effect */
 .wave-bg {
   position: absolute;
@@ -99,4 +138,10 @@ body {
 
 .wave-bg .shape-fill {
   fill: #f8fafc;
+}
+
+/* Prevent content overflow on mobile */
+* {
+  box-sizing: border-box;
+  min-width: 0;
 }

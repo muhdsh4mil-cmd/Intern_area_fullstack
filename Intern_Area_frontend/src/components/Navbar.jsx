@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { mockJobs } from "../data/mockData";
 import { SUPERHERO_AVATARS } from "../data/avatars";
+import NotificationDropdown from "./NotificationDropdown";
+import MessagesDropdown from "./MessagesDropdown";
 
 export default function Navbar({
   currentView,
@@ -13,6 +15,7 @@ export default function Navbar({
   setSearchQuery,
   onUpdateAvatar,
   onOpenAvatarModal,
+  onOpenMessages,
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeMegaMenu, setActiveMegaMenu] = useState(null); // 'jobs', 'internships', 'courses', or null
@@ -213,6 +216,33 @@ export default function Navbar({
                 )}
               </div>
 
+              {user && (
+                <>
+                  {/* Community Link */}
+                  <button
+                    onClick={() => setView("community")}
+                    className={`flex items-center text-sm font-semibold py-2 transition-all duration-150 border-b-2 cursor-pointer ${
+                      currentView === "community"
+                        ? "text-primary border-primary"
+                        : "text-slate-600 border-transparent hover:text-primary"
+                    }`}
+                  >
+                    Community
+                  </button>
+
+                  {/* Friends Link */}
+                  <button
+                    onClick={() => setView("friends")}
+                    className={`flex items-center text-sm font-semibold py-2 transition-all duration-150 border-b-2 cursor-pointer ${
+                      currentView === "friends"
+                        ? "text-primary border-primary"
+                        : "text-slate-600 border-transparent hover:text-primary"
+                    }`}
+                  >
+                    Friends
+                  </button>
+                </>
+              )}
 
             </nav>
           </div>
@@ -261,10 +291,19 @@ export default function Navbar({
             {/* Auth / Dynamic Dashboard Buttons */}
             {user ? (
               <div className="flex items-center space-x-3">
+                {/* Icons: Messages & Notifications */}
+                <div className="flex items-center space-x-1 border-slate-200 pr-1 mr-1 md:border-r md:pr-3 md:mr-1">
+                  {/* Messages — Real dropdown */}
+                  <MessagesDropdown user={user} setView={setView} onOpenConversation={onOpenMessages} />
+
+                  {/* Notifications — Real dropdown */}
+                  <NotificationDropdown user={user} setView={setView} />
+                </div>
+
                 {/* Dashboard Shortcut */}
                 <button
                   onClick={() => setView(user.role === "admin" ? "admin" : user.role === "employer" ? "employer" : "dashboard")}
-                  className={`text-sm font-semibold px-4 py-2 rounded-full border transition-all duration-200 ${
+                  className={`hidden sm:block text-sm font-semibold px-4 py-2 rounded-full border transition-all duration-200 ${
                     currentView === "dashboard" || currentView === "employer" || currentView === "admin"
                       ? "bg-primary text-white border-primary shadow-sm"
                       : "text-slate-600 border-slate-200 hover:bg-slate-50"
@@ -300,7 +339,26 @@ export default function Navbar({
                       {/* Name and email */}
                       <div className="pb-3 border-b border-slate-100 mb-2.5">
                         <p className="text-sm font-bold text-slate-800 font-outfit truncate">{user.name}</p>
-                        <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">{user.email || `${user.name.toLowerCase()}10@gmail.com`}</p>
+                        <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5 mb-1">{user.email || `${user.name.toLowerCase()}10@gmail.com`}</p>
+                        {user.uniqueId && (
+                          <div className="flex items-center justify-between mt-1 bg-slate-50 border border-slate-100 rounded-md p-1.5">
+                            <div className="flex items-center space-x-1.5 overflow-hidden">
+                              <span className="text-[10px] font-bold text-slate-500 tracking-wider shrink-0">ID:</span>
+                              <span className="text-[11px] font-mono font-semibold text-slate-800 truncate select-all">{user.uniqueId}</span>
+                            </div>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(user.uniqueId);
+                              }}
+                              className="ml-2 p-1 text-slate-400 hover:text-primary hover:bg-primary/10 rounded transition-colors shrink-0 group relative"
+                              title="Copy User ID"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
                       </div>
 
 
@@ -320,6 +378,15 @@ export default function Navbar({
                            >
                              My Applications
                            </button>
+                          <button
+                            onClick={() => { setView("messages"); setProfileMenuOpen(false); }}
+                            className="w-full text-left px-3 py-2 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 hover:text-primary transition-all duration-150 flex items-center justify-between"
+                          >
+                            <span>Messages</span>
+                            <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                          </button>
                           <button
                             onClick={() => {
                               if (onOpenEditResume) onOpenEditResume();
@@ -390,7 +457,7 @@ export default function Navbar({
             {/* Mobile Menu Hamburger Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 outline-none"
+              className="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 outline-none shrink-0"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 {mobileMenuOpen ? (
@@ -407,46 +474,85 @@ export default function Navbar({
 
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-slate-100 bg-white px-4 pt-2 pb-4 space-y-3 shadow-md animate-fade-in">
-          
+        <div className="lg:hidden border-t border-slate-100 bg-white shadow-md animate-fade-in">
+
           {/* Mobile Search */}
-          <form onSubmit={handleSearchSubmit} className="relative">
-            <input
-              type="text"
-              placeholder="Search jobs, skills, or location..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 text-sm text-slate-800 rounded-full py-2 pl-4 pr-10 outline-none"
-            />
-            <button type="submit" className="absolute right-3 top-2.5 text-slate-400">
-              <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </button>
-          </form>
+          <div className="px-4 pt-3 pb-2">
+            <form onSubmit={handleSearchSubmit} className="relative">
+              <input
+                type="text"
+                placeholder="Search jobs, skills, or location..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 text-sm text-slate-800 rounded-full py-2.5 pl-4 pr-10 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+              />
+              <button type="submit" className="absolute right-3 top-3 text-slate-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
+            </form>
+          </div>
 
           {/* Navigation Links */}
-          <div className="space-y-1">
+          <div className="px-3 py-2 space-y-0.5">
+            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider px-3 py-1.5">Browse</p>
             <button
               onClick={() => { setView("jobs"); setSearchQuery(""); setMobileMenuOpen(false); }}
-              className="w-full text-left px-3 py-2 text-sm font-semibold text-slate-600 rounded-lg hover:bg-slate-50"
+              className="w-full text-left px-3 py-2.5 text-sm font-semibold text-slate-700 rounded-xl hover:bg-slate-50 flex items-center gap-3"
             >
-              Browse Jobs
+              <span className="text-base">💼</span> Jobs
             </button>
             <button
               onClick={() => { setView("jobs"); setSearchQuery("Internship"); setMobileMenuOpen(false); }}
-              className="w-full text-left px-3 py-2 text-sm font-semibold text-slate-600 rounded-lg hover:bg-slate-50"
+              className="w-full text-left px-3 py-2.5 text-sm font-semibold text-slate-700 rounded-xl hover:bg-slate-50 flex items-center gap-3"
             >
-              Browse Internships
+              <span className="text-base">🎓</span> Internships
             </button>
 
+            {user && (
+              <>
+                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider px-3 py-1.5 mt-2">Community</p>
+                <button
+                  onClick={() => { setView("community"); setMobileMenuOpen(false); }}
+                  className={`w-full text-left px-3 py-2.5 text-sm font-semibold rounded-xl flex items-center gap-3 transition-colors ${
+                    currentView === "community"
+                      ? "text-primary bg-primary/5"
+                      : "text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  <span className="text-base">🌐</span> Community
+                </button>
+                <button
+                  onClick={() => { setView("friends"); setMobileMenuOpen(false); }}
+                  className={`w-full text-left px-3 py-2.5 text-sm font-semibold rounded-xl flex items-center gap-3 transition-colors ${
+                    currentView === "friends"
+                      ? "text-primary bg-primary/5"
+                      : "text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  <span className="text-base">👥</span> Friends
+                </button>
+                <button
+                  onClick={() => { setView("messages"); setMobileMenuOpen(false); }}
+                  className={`w-full text-left px-3 py-2.5 text-sm font-semibold rounded-xl flex items-center gap-3 transition-colors ${
+                    currentView === "messages"
+                      ? "text-primary bg-primary/5"
+                      : "text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  <span className="text-base">💬</span> Messages
+                </button>
+              </>
+            )}
           </div>
 
-          {/* User Profile / Auth buttons */}
+          {/* User Section */}
           {user ? (
-            <div className="border-t border-slate-100 pt-3 space-y-2">
-              <div className="flex items-center space-x-2 px-3">
-                <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center text-white font-bold text-sm shrink-0">
+            <div className="px-4 py-3 border-t border-slate-100 space-y-2.5">
+              {/* Profile info */}
+              <div className="flex items-center gap-3 bg-slate-50 rounded-xl p-3">
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
                   {user.avatar && SUPERHERO_AVATARS[user.avatar] ? (
                     SUPERHERO_AVATARS[user.avatar].svg
                   ) : (
@@ -455,53 +561,52 @@ export default function Navbar({
                     </div>
                   )}
                 </div>
-                <div className="text-xs">
-                  <p className="font-bold text-slate-700">{user.name}</p>
-                  <p className="text-[10px] text-slate-400 capitalize">{user.role}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-slate-800 truncate">{user.name}</p>
+                  <p className="text-[11px] text-slate-400 capitalize">{user.role}</p>
                 </div>
               </div>
               <button
                 onClick={() => { setView(user.role === "admin" ? "admin" : user.role === "employer" ? "employer" : "dashboard"); setMobileMenuOpen(false); }}
-                className="w-full text-center px-4 py-2 text-sm font-semibold text-white bg-primary rounded-full"
+                className="w-full text-center px-4 py-2.5 text-sm font-bold text-white bg-primary hover:bg-primary-dark rounded-xl transition-colors"
               >
-                Go to Management Board
+                {user.role === "admin" ? "Admin Portal" : user.role === "employer" ? "Recruit Portal" : "My Dashboard"}
               </button>
               {user.role !== "admin" && (
                 <button
                   onClick={() => { if (onOpenAvatarModal) onOpenAvatarModal(); setMobileMenuOpen(false); }}
-                  className="w-full text-center px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full"
+                  className="w-full text-center px-4 py-2.5 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
                 >
                   Choose Avatar 🦸‍♂️
                 </button>
               )}
               <button
                 onClick={() => { onLogout(); setMobileMenuOpen(false); }}
-                className="w-full text-center px-4 py-2 text-sm font-semibold text-rose-500 bg-rose-50 rounded-full"
+                className="w-full text-center px-4 py-2.5 text-sm font-bold text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors"
               >
                 Sign Out
               </button>
             </div>
           ) : (
-            <div className="border-t border-slate-100 pt-3 flex flex-col space-y-2">
+            <div className="px-4 py-3 border-t border-slate-100 flex flex-col gap-2">
               <button
                 onClick={() => { onOpenModal("login"); setMobileMenuOpen(false); }}
-                className="w-full py-2 text-center text-sm font-semibold text-primary border border-primary/20 rounded-full"
+                className="w-full py-2.5 text-center text-sm font-bold text-primary border border-primary/30 rounded-xl hover:bg-primary/5 transition-colors"
               >
                 Login
               </button>
               <button
                 onClick={() => { onOpenModal("register"); setMobileMenuOpen(false); }}
-                className="w-full py-2 text-center text-sm font-semibold text-white bg-primary rounded-full"
+                className="w-full py-2.5 text-center text-sm font-bold text-white bg-primary hover:bg-primary-dark rounded-xl transition-colors"
               >
                 Register
               </button>
               <button
                 onClick={() => { onOpenModal("admin-login"); setMobileMenuOpen(false); }}
-                className="w-full py-2 text-center text-sm font-semibold text-slate-700 bg-slate-200 rounded-full"
+                className="w-full py-2.5 text-center text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
               >
-                Admin
+                Admin Login
               </button>
-
             </div>
           )}
         </div>

@@ -195,11 +195,6 @@ export default function CandidateDash({ user, setView, setSearchQuery }) {
         
         {/* Greeting Header */}
         <div className="mb-10 bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden flex flex-col sm:flex-row justify-between items-center gap-6 animate-fade-in">
-          <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none transform translate-x-4 translate-y-4">
-            <svg className="w-48 h-48" fill="currentColor" viewBox="0 0 100 100">
-              <path d="M10 10 H 90 V 90 H 10 Z" />
-            </svg>
-          </div>
           <div className="relative z-10">
             <h1 className="font-outfit font-extrabold text-3xl sm:text-4xl tracking-tight flex items-center">
               Hi, {user.name}! <span className="animate-bounce ml-2.5">👋</span>
