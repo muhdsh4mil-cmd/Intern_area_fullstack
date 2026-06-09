@@ -109,6 +109,16 @@ body {
   animation: scaleUp 0.25s ease-out both;
 }
 
+/* Slide Right Animation (side drawer overlay) */
+@keyframes slideRight {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-slide-right {
+  animation: slideRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* Hide scrollbar but keep scrolling */
 .no-scrollbar {
   scrollbar-width: none;

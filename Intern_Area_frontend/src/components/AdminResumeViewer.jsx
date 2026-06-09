@@ -49,28 +49,42 @@ export default function AdminResumeViewer({ application }) {
     };
   }, [blobUrl]);
 
+  const backendBaseUrl = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:5000"
+    : "https://intern-area-fullstack.onrender.com";
+
+  const isProfilePdf = typeof application?.resumeUrl === "string" && 
+                       application.resumeUrl.endsWith(".pdf") && 
+                       application.resumeUrl.startsWith("/uploads/");
+
   const viewMode = useMemo(() => {
     if (customUrl && isPdfDataUrl(customUrl)) return "embed-custom-pdf";
     if (customUrl) return "embed-custom-other";
+    if (isProfilePdf) return "embed-profile-pdf";
     return "profile-interactive";
-  }, [customUrl]);
+  }, [customUrl, isProfilePdf]);
 
   const embedSrc =
     viewMode === "embed-custom-pdf"
       ? blobUrl
+      : viewMode === "embed-profile-pdf"
+      ? `${backendBaseUrl}${application.resumeUrl}`
       : customUrl;
 
   const canInlinePreview =
     viewMode === "embed-custom-pdf" ||
+    viewMode === "embed-profile-pdf" ||
     (viewMode === "embed-custom-other" && customUrl && isPdfFileName(customName));
 
   const openHref =
     viewMode === "embed-custom-pdf"
       ? blobUrl
+      : viewMode === "embed-profile-pdf"
+      ? `${backendBaseUrl}${application.resumeUrl}`
       : customUrl;
 
   const downloadName =
-    customName || profileLabel || "resume.pdf";
+    customName || (isProfilePdf ? application.resumeUrl.split("/").pop() : profileLabel) || "resume.pdf";
 
   // Candidate resume data (fallback if missing)
   const resumeData = useMemo(() => {
@@ -122,108 +136,192 @@ export default function AdminResumeViewer({ application }) {
 
   const handlePrintProfileResume = () => {
     const printWindow = window.open("", "_blank");
+    
+    const contactItems = [];
+    if (resumeData.place) contactItems.push(`<span>📍 ${resumeData.place}</span>`);
+    if (resumeData.email) contactItems.push(`<span>✉️ ${resumeData.email}</span>`);
+    if (resumeData.phone) contactItems.push(`<span>📞 ${resumeData.phone}</span>`);
+    if (resumeData.portfolio?.linkedin) contactItems.push(`<span>🔗 ${resumeData.portfolio.linkedin}</span>`);
+    if (resumeData.portfolio?.github) contactItems.push(`<span>🐙 ${resumeData.portfolio.github}</span>`);
+    if (resumeData.portfolio?.website) contactItems.push(`<span>🌐 ${resumeData.portfolio.website}</span>`);
+    
+    const contactHTML = contactItems.join(" <span>•</span> ");
+
     printWindow.document.write(`
       <html>
         <head>
           <title>Resume - ${resumeData.name}</title>
           <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
           <style>
-            body { font-family: 'Inter', sans-serif; color: #1e293b; padding: 40px; line-height: 1.5; max-width: 800px; margin: 0 auto; }
+            *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+            @page { size: A4 portrait; margin: 0; }
+            body {
+              font-family: 'Inter', Arial, sans-serif;
+              color: #1e293b;
+              background: #fff;
+              width: 210mm;
+              height: 297mm;
+              padding: 10mm 15mm 10mm;
+              box-sizing: border-box;
+              display: flex;
+              flex-direction: column;
+              justify-content: flex-start;
+              gap: 12px;
+            }
             h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; margin: 0; }
-            h1 { text-transform: uppercase; font-size: 24px; text-align: center; margin-bottom: 5px; font-weight: 800; color: #0f172a; }
-            .contact { text-align: center; font-size: 11px; font-weight: 600; color: #475569; margin-bottom: 20px; text-transform: uppercase; }
-            .section { margin-bottom: 18px; }
-            .section-title { font-size: 12px; font-weight: 800; border-bottom: 2px solid #1e293b; padding-bottom: 3px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; color: #0f172a; }
-            .item { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 11px; }
+            h1 { text-transform: uppercase; font-size: 20pt; font-weight: 900; color: #0f172a; text-align: left; line-height: 1.1; }
+            .contact {
+              display: flex !important;
+              flex-direction: row !important;
+              flex-wrap: wrap !important;
+              align-items: center !important;
+              column-gap: 10px !important;
+              row-gap: 3px !important;
+              margin-top: 6px !important;
+              font-size: 8.5pt !important;
+              font-weight: 700 !important;
+              color: #0052CC !important;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+            }
+            .contact span { display: inline-flex !important; align-items: center; white-space: nowrap; color: #0052CC; }
+            .header-container { border-bottom: 2px solid #0f172a; padding-bottom: 6px; margin-bottom: 2px; }
+            .section { display: flex; flex-direction: column; gap: 4px; }
+            .section-title {
+              font-size: 8.5pt;
+              font-weight: 800;
+              border-bottom: 1.5px solid #0052CC;
+              padding-bottom: 2px;
+              margin-bottom: 6px;
+              text-transform: uppercase;
+              letter-spacing: 0.1em;
+              color: #0052CC;
+              width: 100%;
+            }
+            .item { display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 9.5pt; }
             .item-title { font-weight: 700; color: #1e293b; }
             .item-sub { color: #64748b; font-weight: 500; }
-            .item-desc { font-size: 10px; color: #334155; margin-top: 3px; border-left: 2px solid #cbd5e1; padding-left: 8px; }
-            .skills-list { display: flex; flex-wrap: wrap; gap: 5px; }
-            .skill-tag { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 6px; font-size: 9px; font-weight: 700; color: #475569; }
-            .links-list { display: flex; gap: 15px; font-size: 10px; font-weight: 700; color: #64748b; }
+            .item-desc { font-size: 9pt; color: #334155; margin-top: 2px; border-left: 2px solid #cbd5e1; padding-left: 8px; line-height: 1.4; text-align: justify; }
+            .skills-list { display: flex; flex-wrap: wrap; gap: 4px; }
+            .skill-tag {
+              background: #f8fafc !important;
+              border: 1px solid rgba(226, 232, 240, 0.8) !important;
+              border-radius: 4px !important;
+              padding: 2px 6px !important;
+              font-size: 7.5pt !important;
+              font-weight: 700 !important;
+              color: #475569 !important;
+              display: inline-block !important;
+              white-space: nowrap !important;
+            }
+            .tech-tag {
+              background: #f1f5f9 !important;
+              border-radius: 4px !important;
+              padding: 2px 6px !important;
+              font-size: 7.5pt !important;
+              font-weight: 700 !important;
+              color: #475569 !important;
+              display: inline-block !important;
+            }
+            .bullet-list { list-style-type: disc !important; padding-left: 12px; font-size: 9pt; color: #334155; margin-left: 14px; }
+            .bullet-list li { margin-bottom: 2px; line-height: 1.4; }
           </style>
         </head>
         <body>
-          <h1>${resumeData.name}</h1>
-          <div class="contact">
-            📍 ${resumeData.place || "City, Country"} &nbsp;•&nbsp;
-            📧 ${resumeData.email || ""} &nbsp;•&nbsp;
-            📞 ${resumeData.phone || ""}
+          <div class="header-container">
+            <h1>${resumeData.name}</h1>
+            <div class="contact">
+              ${contactHTML}
+            </div>
           </div>
-          \${resumeData.careerObjective ? \`
+          ${resumeData.careerObjective ? `
             <div class="section">
               <div class="section-title">Career Objective</div>
-              <p style="font-size: 11px; color: #334155; text-align: justify; margin: 0;">\${resumeData.careerObjective}</p>
+              <p style="font-size: 9.5pt; color: #334155; text-align: justify; margin: 0; line-height: 1.45;">${resumeData.careerObjective}</p>
             </div>
-          \` : ""}
-          \${resumeData.education && resumeData.education.length > 0 ? \`
+          ` : ""}
+          ${resumeData.education && resumeData.education.length > 0 ? `
             <div class="section">
               <div class="section-title">Education</div>
-              \${resumeData.education.map(edu => \`
+              ${resumeData.education.map(edu => `
                 <div class="item">
                   <div>
-                    <span class="item-title">\${edu.degree}</span><br/>
-                    <span class="item-sub">\${edu.school}</span>
+                    <span class="item-title">${edu.degree}</span><br/>
+                    <span class="item-sub">${edu.school}</span>
                   </div>
-                  <div style="text-align: right; font-weight: 700;">
-                    <span>\${edu.year}</span><br/>
-                    <span style="color: #2563eb;">\${edu.score}</span>
+                  <div style="text-align: right; font-weight: 700; font-size: 9pt; color: #64748b;">
+                    <span>${edu.year}</span><br/>
+                    <span style="color: #0052CC; font-weight: 800;">${edu.score}</span>
                   </div>
                 </div>
-              \`).join("")}
+              `).join("")}
             </div>
-          \` : ""}
-          \${resumeData.experience && resumeData.experience.length > 0 ? \`
+          ` : ""}
+          ${resumeData.experience && resumeData.experience.length > 0 ? `
             <div class="section">
               <div class="section-title">Work Experience</div>
-              \${resumeData.experience.map(exp => \`
-                <div style="margin-bottom: 10px;">
+              ${resumeData.experience.map(exp => `
+                <div style="margin-bottom: 4px;">
                   <div class="item">
                     <div>
-                      <span class="item-title">\${exp.role}</span> <span style="font-size: 8px; border: 1px solid #cbd5e1; border-radius: 99px; padding: 1px 5px; font-weight: 700;">\${exp.type}</span><br/>
-                      <span class="item-sub">\${exp.company}</span>
+                      <span class="item-title">${exp.role}</span> <span style="font-size: 7pt; font-weight: 700; padding: 1px 4px; border-radius: 3px; background: ${exp.type === "Internship" ? "#ecfdf5" : "#eff6ff"}; border: 1px solid ${exp.type === "Internship" ? "#a7f3d0" : "#bfdbfe"}; color: ${exp.type === "Internship" ? "#047857" : "#1d4ed8"};">${exp.type}</span><br/>
+                      <span class="item-sub">${exp.company}</span>
                     </div>
-                    <div style="text-align: right; font-weight: 700;">
-                      <span>\${exp.duration}</span>
+                    <div style="text-align: right; font-weight: 700; font-size: 9pt; color: #64748b;">
+                      <span>${exp.duration}</span>
                     </div>
                   </div>
-                  \${exp.description ? \`<div class="item-desc">\${exp.description}</div>\` : ""}
+                  ${exp.description ? `<div class="item-desc">${exp.description}</div>` : ""}
                 </div>
-              \`).join("")}
+              `).join("")}
             </div>
-          \` : ""}
-          \${resumeData.projects && resumeData.projects.length > 0 ? \`
+          ` : ""}
+          ${resumeData.projects && resumeData.projects.length > 0 ? `
             <div class="section">
-              <div class="section-title">Projects</div>
-              \${resumeData.projects.map(proj => \`
-                <div style="margin-bottom: 8px;">
-                  <div class="item">
-                    <span class="item-title">\${proj.title}</span>
-                    <span style="font-size: 8px; background: #e2e8f0; border-radius: 4px; padding: 1px 5px; font-weight: 700; color: #475569;">\${proj.tech}</span>
+              <div class="section-title">Academics & Personal Projects</div>
+              ${resumeData.projects.map(proj => `
+                <div style="margin-bottom: 4px;">
+                  <div class="item" style="align-items: flex-start;">
+                    <span class="item-title" style="flex: 1; min-w-0; word-break: break-word;">${proj.title}</span>
+                    <span class="tech-tag" style="flex-shrink: 0; margin-left: 8px;">${proj.tech}</span>
                   </div>
-                  \${proj.description ? \`<div style="font-size: 10px; color: #334155; margin-top: 2px;">\${proj.description}</div>\` : ""}
+                  ${proj.description ? `<div style="font-size: 9pt; color: #334155; margin-top: 2px; line-height: 1.4; text-align: justify;">${proj.description}</div>` : ""}
                 </div>
-              \`).join("")}
+              `).join("")}
             </div>
-          \` : ""}
-          \${resumeData.skills && resumeData.skills.length > 0 ? \`
+          ` : ""}
+          ${resumeData.skills && resumeData.skills.length > 0 ? `
             <div class="section">
-              <div class="section-title">Skills</div>
+              <div class="section-title">Key Skills</div>
               <div class="skills-list">
-                \${resumeData.skills.map(skill => \`<span class="skill-tag">\${skill}</span>\`).join("")}
+                ${resumeData.skills.map(skill => `<span class="skill-tag">${skill}</span>`).join("")}
               </div>
             </div>
-          \` : ""}
-          \${resumeData.portfolio && (resumeData.portfolio.github || resumeData.portfolio.linkedin || resumeData.portfolio.website) ? \`
+          ` : ""}
+          ${resumeData.certifications && resumeData.certifications.length > 0 ? `
             <div class="section">
-              <div class="section-title">Links</div>
-              <div class="links-list">
-                \${resumeData.portfolio.github ? \`<span>🐙 \${resumeData.portfolio.github}</span>\` : ""}
-                \${resumeData.portfolio.linkedin ? \`<span>🔗 \${resumeData.portfolio.linkedin}</span>\` : ""}
-                \${resumeData.portfolio.website ? \`<span>🌐 \${resumeData.portfolio.website}</span>\` : ""}
-              </div>
+              <div class="section-title">Certifications</div>
+              <ul class="bullet-list">
+                ${resumeData.certifications.map(cert => cert ? `<li>${cert}</li>` : "").join("")}
+              </ul>
             </div>
-          \` : ""}
+          ` : ""}
+          ${resumeData.achievements && resumeData.achievements.length > 0 ? `
+            <div class="section">
+              <div class="section-title">Key Achievements</div>
+              <ul class="bullet-list">
+                ${resumeData.achievements.map(ach => ach ? `<li>${ach}</li>` : "").join("")}
+              </ul>
+            </div>
+          ` : ""}
+          ${resumeData.extraCurriculars && resumeData.extraCurriculars.length > 0 ? `
+            <div class="section">
+              <div class="section-title">Extra-Curricular Activities</div>
+              <ul class="bullet-list">
+                ${resumeData.extraCurriculars.map(ec => ec ? `<li>${ec}</li>` : "").join("")}
+              </ul>
+            </div>
+          ` : ""}
           <script>
             window.onload = function() { window.print(); }
           </script>
@@ -278,17 +376,37 @@ export default function AdminResumeViewer({ application }) {
         <div className="rounded-xl border border-slate-200/80 bg-white shadow-sm p-5 max-h-[420px] overflow-y-auto text-left select-text scrollbar-thin space-y-4">
           
           {/* Header */}
-          <div className="text-center pb-3 border-b-2 border-slate-800 space-y-1">
-            <h2 className="font-outfit font-extrabold text-sm text-slate-900 tracking-tight uppercase">
-              {resumeData.name}
-            </h2>
-            <p className="text-[9px] font-bold text-primary tracking-wide uppercase flex justify-center gap-1.5 flex-wrap">
-              <span>📍 {resumeData.place || "City, Country"}</span>
-              <span>•</span>
-              <span>📧 {resumeData.email || ""}</span>
-              <span>•</span>
-              <span>📞 {resumeData.phone || ""}</span>
-            </p>
+          <div className="flex justify-between items-start border-b-2 border-slate-800 pb-3">
+            <div className="flex-1 min-w-0 pr-4">
+              <h2 className="font-outfit font-extrabold text-sm text-slate-900 tracking-tight leading-none uppercase break-words">
+                {resumeData.name}
+              </h2>
+              <div className="text-[9px] font-bold text-primary tracking-wider uppercase mt-2.5 flex flex-wrap gap-x-3 gap-y-1">
+                <span>📍 {resumeData.place || "City, Country"}</span>
+                <span>•</span>
+                <span>✉️ {resumeData.email || "email@address.com"}</span>
+                <span>•</span>
+                <span>📞 {resumeData.phone || "Phone Number"}</span>
+                {resumeData.portfolio?.linkedin && (
+                  <>
+                    <span>•</span>
+                    <span>🔗 {resumeData.portfolio.linkedin}</span>
+                  </>
+                )}
+                {resumeData.portfolio?.github && (
+                  <>
+                    <span>•</span>
+                    <span>🐙 {resumeData.portfolio.github}</span>
+                  </>
+                )}
+                {resumeData.portfolio?.website && (
+                  <>
+                    <span>•</span>
+                    <span>🌐 {resumeData.portfolio.website}</span>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Objective */}
@@ -307,12 +425,12 @@ export default function AdminResumeViewer({ application }) {
               <h4 className="font-outfit font-extrabold text-[10px] text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5">Education</h4>
               <div className="space-y-1.5">
                 {resumeData.education.map((edu) => (
-                  <div key={edu.id} className="flex justify-between items-start text-[10px]">
-                    <div>
-                      <p className="font-bold text-slate-800">{edu.degree}</p>
-                      <p className="text-slate-500 font-medium">{edu.school}</p>
+                  <div key={edu.id} className="flex justify-between items-start text-[10px] gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-slate-800 break-words">{edu.degree}</p>
+                      <p className="text-slate-500 font-medium break-words">{edu.school}</p>
                     </div>
-                    <div className="text-right text-[9px] text-slate-500 font-bold whitespace-nowrap">
+                    <div className="text-right text-[9px] text-slate-500 font-bold whitespace-nowrap shrink-0">
                       <p>{edu.year}</p>
                       <p className="text-primary font-extrabold">{edu.score}</p>
                     </div>
@@ -329,17 +447,17 @@ export default function AdminResumeViewer({ application }) {
               <div className="space-y-2">
                 {resumeData.experience.map((exp) => (
                   <div key={exp.id} className="space-y-0.5">
-                    <div className="flex justify-between items-start text-[10px]">
-                      <div>
-                        <p className="font-bold text-slate-800">
+                    <div className="flex justify-between items-start text-[10px] gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-slate-800 break-words">
                           {exp.role} 
                           <span className={`ml-1.5 text-[8px] font-bold px-1.5 py-0.2 bg-slate-50 border border-slate-200 rounded-full text-slate-500`}>
                             {exp.type}
                           </span>
                         </p>
-                        <p className="text-slate-500 font-medium">{exp.company}</p>
+                        <p className="text-slate-500 font-medium break-words">{exp.company}</p>
                       </div>
-                      <div className="text-right text-[9px] text-slate-500 font-bold whitespace-nowrap">
+                      <div className="text-right text-[9px] text-slate-500 font-bold whitespace-nowrap shrink-0">
                         <p>{exp.duration}</p>
                       </div>
                     </div>
@@ -357,13 +475,13 @@ export default function AdminResumeViewer({ application }) {
           {/* Projects */}
           {resumeData.projects && resumeData.projects.length > 0 && (
             <div className="space-y-2">
-              <h4 className="font-outfit font-extrabold text-[10px] text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5">Projects</h4>
+              <h4 className="font-outfit font-extrabold text-[10px] text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5">Academics & Personal Projects</h4>
               <div className="space-y-2">
                 {resumeData.projects.map((proj) => (
                   <div key={proj.id} className="space-y-0.5 text-[10px]">
-                    <div className="flex justify-between items-start">
-                      <p className="font-bold text-slate-800">{proj.title}</p>
-                      <span className="text-[8px] font-bold text-slate-500 bg-slate-100 rounded px-1 py-0.2">{proj.tech}</span>
+                    <div className="flex justify-between items-start gap-2">
+                      <p className="font-bold text-slate-800 min-w-0 flex-1 break-words">{proj.title}</p>
+                      <span className="text-[8px] font-bold text-slate-500 bg-slate-100 rounded px-1.5 py-0.2 shrink-0">{proj.tech}</span>
                     </div>
                     {proj.description && (
                       <p className="text-[9px] text-slate-600 leading-normal text-justify">
@@ -390,21 +508,39 @@ export default function AdminResumeViewer({ application }) {
             </div>
           )}
 
-          {/* Portfolio Links */}
-          {resumeData.portfolio && (resumeData.portfolio.github || resumeData.portfolio.linkedin || resumeData.portfolio.website) && (
+          {/* Certifications */}
+          {resumeData.certifications && resumeData.certifications.length > 0 && (
             <div className="space-y-1.5">
-              <h4 className="font-outfit font-extrabold text-[10px] text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5">Links</h4>
-              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[9px] font-bold text-slate-500">
-                {resumeData.portfolio.github && (
-                  <span>🐙 <span className="hover:text-primary transition-colors">{resumeData.portfolio.github}</span></span>
-                )}
-                {resumeData.portfolio.linkedin && (
-                  <span>🔗 <span className="hover:text-primary transition-colors">{resumeData.portfolio.linkedin}</span></span>
-                )}
-                {resumeData.portfolio.website && (
-                  <span>🌐 <span className="hover:text-primary transition-colors">{resumeData.portfolio.website}</span></span>
-                )}
-              </div>
+              <h4 className="font-outfit font-extrabold text-[10px] text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5">Certifications</h4>
+              <ul className="list-disc pl-4 text-[9px] text-slate-600 space-y-0.5">
+                {resumeData.certifications.map((cert, idx) => cert && (
+                  <li key={idx} className="leading-normal">{cert}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Key Achievements */}
+          {resumeData.achievements && resumeData.achievements.length > 0 && (
+            <div className="space-y-1.5">
+              <h4 className="font-outfit font-extrabold text-[10px] text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5">Key Achievements</h4>
+              <ul className="list-disc pl-4 text-[9px] text-slate-600 space-y-0.5">
+                {resumeData.achievements.map((ach, idx) => ach && (
+                  <li key={idx} className="leading-normal">{ach}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Extra-Curricular Activities */}
+          {resumeData.extraCurriculars && resumeData.extraCurriculars.length > 0 && (
+            <div className="space-y-1.5">
+              <h4 className="font-outfit font-extrabold text-[10px] text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5">Extra-Curricular Activities</h4>
+              <ul className="list-disc pl-4 text-[9px] text-slate-600 space-y-0.5">
+                {resumeData.extraCurriculars.map((ec, idx) => ec && (
+                  <li key={idx} className="leading-normal">{ec}</li>
+                ))}
+              </ul>
             </div>
           )}
         </div>

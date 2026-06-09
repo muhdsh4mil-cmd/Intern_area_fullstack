@@ -3,6 +3,7 @@ import { mockJobs as seedJobs } from "../data/mockData";
 import AdminResumeViewer from "./AdminResumeViewer";
 import { SUPERHERO_AVATARS } from "../data/avatars";
 import { fetchUsers, updateUserRole, deleteUser } from "../api/adminAPI";
+import { getAllLoginHistory } from "../api/authAPI";
 
 const LOGO_GRADIENTS = [
   "from-blue-600 to-indigo-700",
@@ -34,6 +35,14 @@ export default function AdminDash({
   const [userRoleFilter, setUserRoleFilter] = useState("all");
   const [feedback, setFeedback] = useState(null);
 
+  // Login Audit State
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState(null);
+  const [auditSearch, setAuditSearch] = useState("");
+  const [auditStatusFilter, setAuditStatusFilter] = useState("all");
+  const [auditDeviceFilter, setAuditDeviceFilter] = useState("all");
+
   const triggerFeedback = (message, type = "success") => {
     setFeedback({ message, type });
     setTimeout(() => setFeedback(null), 5000);
@@ -54,9 +63,25 @@ export default function AdminDash({
     }
   };
 
+  const loadAuditLogs = async () => {
+    setAuditLoading(true);
+    setAuditError(null);
+    try {
+      const data = await getAllLoginHistory();
+      setAuditLogs(data);
+    } catch (err) {
+      console.error("Error loading audit logs:", err);
+      setAuditError("Failed to fetch login audit logs. Please make sure the backend is active.");
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "users") {
       loadUsersData();
+    } else if (activeTab === "login-audit") {
+      loadAuditLogs();
     }
   }, [activeTab]);
 
@@ -349,6 +374,16 @@ export default function AdminDash({
           }`}
         >
           🎓 Post Internship
+        </button>
+        <button
+          onClick={() => setActiveTab("login-audit")}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+            activeTab === "login-audit"
+              ? "border-primary text-primary"
+              : "border-transparent text-slate-400 hover:text-slate-600"
+          }`}
+        >
+          🔐 Login Audit
         </button>
       </div>
 
@@ -694,123 +729,199 @@ export default function AdminDash({
                 </button>
               </div>
             ) : filteredUsers.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest font-outfit">
-                      <th className="py-4 px-6">User profile</th>
-                      <th className="py-4 px-6">Joined Date</th>
-                      <th className="py-4 px-6">Session activity</th>
-                      <th className="py-4 px-6">Platform role authorization</th>
-                      <th className="py-4 px-6 text-right">Administrative Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50 text-xs">
-                    {filteredUsers.map((item) => {
-                      const isSelf = currentUser && (currentUser._id === item._id || currentUser.id === item._id);
-                      const isAdminProtected = item.role === "admin";
-                      
-                      return (
-                        <tr key={item._id} className="hover:bg-slate-50/60 transition-colors">
-                          
-                          {/* Profile */}
-                          <td className="py-4 px-6">
-                            <div className="flex items-center gap-3">
-                              {/* Avatar container with online dot */}
-                              <div className="relative w-10 h-10 shrink-0 rounded-full bg-slate-100 border border-slate-200 overflow-visible flex items-center justify-center">
-                                {item.avatar && SUPERHERO_AVATARS[item.avatar] ? (
-                                  <div className="w-full h-full p-0.5 rounded-full overflow-hidden">
-                                    {SUPERHERO_AVATARS[item.avatar].svg}
-                                  </div>
-                                ) : (
-                                  <div className="w-full h-full bg-gradient-to-tr from-slate-200 to-slate-300 rounded-full flex items-center justify-center font-bold text-slate-600 text-sm">
-                                    {item.name.charAt(0).toUpperCase()}
-                                  </div>
-                                )}
-                                
-                                {/* Glowing status dot */}
-                                <span className={`absolute -right-0.5 -bottom-0.5 w-3 h-3 rounded-full border-2 border-white shadow-sm ${
-                                  item.isOnline ? "bg-emerald-500" : "bg-slate-300"
-                                }`}>
-                                  {item.isOnline && (
-                                    <span className="absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-75"></span>
+              <div className="space-y-4">
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto border border-slate-100 rounded-xl">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest font-outfit">
+                        <th className="py-4 px-6">User profile</th>
+                        <th className="py-4 px-6">Joined Date</th>
+                        <th className="py-4 px-6">Session activity</th>
+                        <th className="py-4 px-6">Platform role authorization</th>
+                        <th className="py-4 px-6 text-right">Administrative Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50 text-xs">
+                      {filteredUsers.map((item) => {
+                        const isSelf = currentUser && (currentUser._id === item._id || currentUser.id === item._id);
+                        const isAdminProtected = item.role === "admin";
+                        
+                        return (
+                          <tr key={item._id} className="hover:bg-slate-50/60 transition-colors">
+                            
+                            {/* Profile */}
+                            <td className="py-4 px-6">
+                              <div className="flex items-center gap-3">
+                                {/* Avatar container with online dot */}
+                                <div className="relative w-10 h-10 shrink-0 rounded-full bg-slate-100 border border-slate-200 overflow-visible flex items-center justify-center">
+                                  {item.avatar && SUPERHERO_AVATARS[item.avatar] ? (
+                                    <div className="w-full h-full p-0.5 rounded-full overflow-hidden">
+                                      {SUPERHERO_AVATARS[item.avatar].svg}
+                                    </div>
+                                  ) : (
+                                    <div className="w-full h-full bg-gradient-to-tr from-slate-200 to-slate-300 rounded-full flex items-center justify-center font-bold text-slate-600 text-sm">
+                                      {item.name.charAt(0).toUpperCase()}
+                                    </div>
                                   )}
-                                </span>
+                                  
+                                  {/* Glowing status dot */}
+                                  <span className={`absolute -right-0.5 -bottom-0.5 w-3 h-3 rounded-full border-2 border-white shadow-sm ${
+                                    item.isOnline ? "bg-emerald-500" : "bg-slate-300"
+                                  }`}>
+                                    {item.isOnline && (
+                                      <span className="absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-75"></span>
+                                    )}
+                                  </span>
+                                </div>
+
+                                <div>
+                                  <h4 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                                    {item.name} {isSelf && <span className="bg-slate-100 text-slate-500 font-bold text-[8px] px-1.5 py-0.5 rounded-md uppercase">You</span>}
+                                  </h4>
+                                  <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{item.email}</p>
+                                  {item.company && (
+                                    <p className="text-[9px] text-emerald-600 font-bold uppercase mt-0.5">🏢 {item.company}</p>
+                                  )}
+                                </div>
                               </div>
+                            </td>
 
-                              <div>
-                                <h4 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
-                                  {item.name} {isSelf && <span className="bg-slate-100 text-slate-500 font-bold text-[8px] px-1.5 py-0.5 rounded-md uppercase">You</span>}
-                                </h4>
-                                <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{item.email}</p>
-                                {item.company && (
-                                  <p className="text-[9px] text-emerald-600 font-bold uppercase mt-0.5">🏢 {item.company}</p>
-                                )}
-                              </div>
-                            </div>
-                          </td>
+                            {/* Joined date */}
+                            <td className="py-4 px-6 text-slate-500 font-medium">
+                              {new Date(item.createdAt).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </td>
 
-                          {/* Joined date */}
-                          <td className="py-4 px-6 text-slate-500 font-medium">
-                            {new Date(item.createdAt).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </td>
-
-                          {/* Session activity */}
-                          <td className="py-4 px-6">
-                            <div className="space-y-1">
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                item.isOnline 
-                                  ? "bg-emerald-50 text-emerald-600 border border-emerald-100" 
-                                  : "bg-slate-100 text-slate-400"
-                              }`}>
-                                {formatLastActive(item.lastLogin, item.isOnline)}
-                              </span>
-                              <p className="text-[10px] text-slate-400 font-medium pl-1.5 mt-1">
-                                🔢 Logins: <span className="text-slate-700 font-bold">{item.loginCount || 1}</span>
-                              </p>
-                            </div>
-                          </td>
-
-                          {/* Role badges & selection */}
-                          <td className="py-4 px-6">
-                            {isSelf ? (
-                              <span className="text-[10px] bg-purple-50 text-purple-600 border border-purple-100 font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
-                                🔑 System Owner (Admin)
-                              </span>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${
-                                  item.role === "admin"
-                                    ? "bg-purple-50 text-purple-600 border border-purple-100"
-                                    : item.role === "employer"
-                                      ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                      : "bg-blue-50 text-blue-600 border border-blue-100"
+                            {/* Session activity */}
+                            <td className="py-4 px-6">
+                              <div className="space-y-1">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  item.isOnline 
+                                    ? "bg-emerald-50 text-emerald-600 border border-emerald-100" 
+                                    : "bg-slate-100 text-slate-400"
                                 }`}>
-                                  {item.role === "employer" ? "Recruiter" : item.role}
+                                  {formatLastActive(item.lastLogin, item.isOnline)}
                                 </span>
-                                
-                                <select
-                                  value={item.role}
-                                  onChange={(e) => handleRoleChange(item._id, e.target.value)}
-                                  className="bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-xl px-2 py-1 text-[10px] font-bold text-slate-600 outline-none cursor-pointer transition-all shrink-0"
-                                >
-                                  <option value="candidate">Candidate</option>
-                                  <option value="employer">Recruiter</option>
-                                  <option value="admin">Admin</option>
-                                </select>
+                                <p className="text-[10px] text-slate-400 font-medium pl-1.5 mt-1">
+                                  🔢 Logins: <span className="text-slate-700 font-bold">{item.loginCount || 1}</span>
+                                </p>
                               </div>
-                            )}
-                          </td>
+                            </td>
 
-                          {/* Delete */}
-                          <td className="py-4 px-6 text-right">
+                            {/* Role badges & selection */}
+                            <td className="py-4 px-6">
+                              {isSelf ? (
+                                <span className="text-[10px] bg-purple-50 text-purple-600 border border-purple-100 font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
+                                  🔑 System Owner (Admin)
+                                </span>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${
+                                    item.role === "admin"
+                                      ? "bg-purple-50 text-purple-600 border border-purple-100"
+                                      : item.role === "employer"
+                                        ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                        : "bg-blue-50 text-blue-600 border border-blue-100"
+                                  }`}>
+                                    {item.role === "employer" ? "Recruiter" : item.role}
+                                  </span>
+                                  
+                                  <select
+                                    value={item.role}
+                                    onChange={(e) => handleRoleChange(item._id, e.target.value)}
+                                    className="bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-xl px-2 py-1 text-[10px] font-bold text-slate-600 outline-none cursor-pointer transition-all shrink-0"
+                                  >
+                                    <option value="candidate">Candidate</option>
+                                    <option value="employer">Recruiter</option>
+                                    <option value="admin">Admin</option>
+                                  </select>
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Delete */}
+                            <td className="py-4 px-6 text-right">
+                              {isSelf ? (
+                                <span className="text-[9px] text-slate-400 font-bold uppercase select-none tracking-wide italic pr-2">
+                                  Secured Account 🔒
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteUser(item._id, item.name)}
+                                  className={`p-2.5 rounded-xl border border-rose-100 hover:border-rose-300 bg-rose-50/40 hover:bg-rose-50 text-rose-500 hover:text-rose-600 transition-all cursor-pointer ${
+                                    isAdminProtected ? "opacity-30 cursor-not-allowed" : ""
+                                  }`}
+                                  disabled={isAdminProtected}
+                                  title={isAdminProtected ? "Administrator profiles are protected" : "Permanently delete user profile"}
+                                >
+                                  🗑️
+                                </button>
+                              )}
+                            </td>
+
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile/Tablet Card List View */}
+                <div className="block md:hidden space-y-4">
+                  {filteredUsers.map((item) => {
+                    const isSelf = currentUser && (currentUser._id === item._id || currentUser.id === item._id);
+                    const isAdminProtected = item.role === "admin";
+                    
+                    return (
+                      <div
+                        key={item._id}
+                        className="p-5 rounded-2xl border border-slate-200 bg-slate-50/30 hover:bg-slate-50 transition-all space-y-4 text-xs shadow-sm"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-3">
+                            {/* Avatar container with online dot */}
+                            <div className="relative w-11 h-11 shrink-0 rounded-full bg-slate-100 border border-slate-200 overflow-visible flex items-center justify-center">
+                              {item.avatar && SUPERHERO_AVATARS[item.avatar] ? (
+                                <div className="w-full h-full p-0.5 rounded-full overflow-hidden">
+                                  {SUPERHERO_AVATARS[item.avatar].svg}
+                                </div>
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-tr from-slate-200 to-slate-300 rounded-full flex items-center justify-center font-bold text-slate-600 text-sm">
+                                  {item.name.charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              
+                              {/* Glowing status dot */}
+                              <span className={`absolute -right-0.5 -bottom-0.5 w-3 h-3 rounded-full border-2 border-white shadow-sm ${
+                                item.isOnline ? "bg-emerald-500" : "bg-slate-300"
+                              }`}>
+                                {item.isOnline && (
+                                  <span className="absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-75"></span>
+                                )}
+                              </span>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                                {item.name} {isSelf && <span className="bg-slate-100 text-slate-500 font-bold text-[8px] px-1.5 py-0.5 rounded-md uppercase">You</span>}
+                              </h4>
+                              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{item.email}</p>
+                              {item.company && (
+                                <p className="text-[9px] text-emerald-600 font-bold uppercase mt-0.5">🏢 {item.company}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Delete Button */}
+                          <div>
                             {isSelf ? (
-                              <span className="text-[9px] text-slate-400 font-bold uppercase select-none tracking-wide italic pr-2">
-                                Secured Account 🔒
+                              <span className="text-[9px] text-slate-400 font-bold uppercase select-none tracking-wide italic">
+                                Secured 🔒
                               </span>
                             ) : (
                               <button
@@ -825,13 +936,71 @@ export default function AdminDash({
                                 🗑️
                               </button>
                             )}
-                          </td>
+                          </div>
+                        </div>
 
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                        {/* Middle Info Row */}
+                        <div className="grid grid-cols-2 gap-4 pt-1.5 text-slate-600">
+                          <div>
+                            <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider mb-1">Joined Date</span>
+                            <span className="font-semibold text-slate-700">
+                              {new Date(item.createdAt).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider mb-1">Session Activity</span>
+                            <div className="flex flex-col gap-1 items-start">
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                                item.isOnline 
+                                  ? "bg-emerald-50 text-emerald-600 border border-emerald-100" 
+                                  : "bg-slate-100 text-slate-400"
+                              }`}>
+                                {formatLastActive(item.lastLogin, item.isOnline)}
+                              </span>
+                              <span className="text-[10px] text-slate-500 font-medium">Logins: <strong className="text-slate-700 font-bold">{item.loginCount || 1}</strong></span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Role Selector Row */}
+                        <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Platform Role Authorization</span>
+                          {isSelf ? (
+                            <span className="text-[10px] font-extrabold text-purple-600 bg-purple-50 px-3 py-1 rounded-lg border border-purple-100 w-fit">
+                              🔑 Owner (Admin)
+                            </span>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${
+                                item.role === "admin"
+                                  ? "bg-purple-50 text-purple-600 border border-purple-100"
+                                  : item.role === "employer"
+                                    ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                    : "bg-blue-50 text-blue-600 border border-blue-100"
+                              }`}>
+                                {item.role === "employer" ? "Recruiter" : item.role}
+                              </span>
+                              
+                              <select
+                                value={item.role}
+                                onChange={(e) => handleRoleChange(item._id, e.target.value)}
+                                className="bg-white border border-slate-200 rounded-xl px-2.5 py-1 text-[10px] font-bold text-slate-600 outline-none cursor-pointer transition-all shrink-0"
+                              >
+                                <option value="candidate">Candidate</option>
+                                <option value="employer">Recruiter</option>
+                                <option value="admin">Admin</option>
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             ) : (
               <div className="p-16 text-center text-slate-400 font-medium">
@@ -1089,6 +1258,209 @@ export default function AdminDash({
             </button>
 
           </form>
+        </div>
+      )}
+
+      {/* TAB CONTENT: Login Audit */}
+      {activeTab === "login-audit" && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm animate-fade-in space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h3 className="font-outfit font-bold text-slate-800 text-lg flex items-center">
+                <span className="mr-2 text-xl">🔐</span> System Login Audit Log
+              </h3>
+              <p className="text-slate-400 text-xs mt-1 font-sans">
+                Review platform authentication attempts across all accounts and environments.
+              </p>
+            </div>
+            <button
+              onClick={loadAuditLogs}
+              disabled={auditLoading}
+              className="p-2 text-slate-500 hover:text-primary rounded-xl hover:bg-slate-50 border border-slate-200 shadow-sm transition-all"
+            >
+              <svg className={`w-4 h-4 ${auditLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Filters Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-outfit">Search User / IP</label>
+              <input
+                type="text"
+                placeholder="Search by name, email, IP..."
+                value={auditSearch}
+                onChange={(e) => setAuditSearch(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs outline-none focus:border-primary focus:bg-white transition-all text-slate-800 font-sans"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-outfit">Filter by Status</label>
+              <select
+                value={auditStatusFilter}
+                onChange={(e) => setAuditStatusFilter(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs outline-none focus:border-primary focus:bg-white transition-all text-slate-800 font-sans font-semibold cursor-pointer"
+              >
+                <option value="all">All Statuses</option>
+                <option value="Successful">Successful</option>
+                <option value="Failed">Failed</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-outfit">Filter by Device</label>
+              <select
+                value={auditDeviceFilter}
+                onChange={(e) => setAuditDeviceFilter(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs outline-none focus:border-primary focus:bg-white transition-all text-slate-800 font-sans font-semibold cursor-pointer"
+              >
+                <option value="all">All Devices</option>
+                <option value="Desktop">Desktop</option>
+                <option value="Laptop">Laptop</option>
+                <option value="Tablet">Tablet</option>
+                <option value="Mobile">Mobile</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Table / List */}
+          {auditLoading ? (
+            <div className="py-12 text-center text-slate-400 text-sm font-medium">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              Retrieving system audit logs...
+            </div>
+          ) : auditError ? (
+            <div className="py-8 text-center text-rose-500 text-xs font-semibold bg-rose-50 rounded-xl border border-rose-100 font-sans">
+              ⚠️ {auditError}
+            </div>
+          ) : auditLogs.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-xs font-sans italic">
+              No login logs recorded yet in the database.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto border border-slate-100 rounded-xl">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      <th className="py-3 px-4">User</th>
+                      <th className="py-3 px-4">Timestamp</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4">Device</th>
+                      <th className="py-3 px-4">Browser & OS</th>
+                      <th className="py-3 px-4">IP Address</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 font-medium text-slate-700">
+                    {auditLogs
+                      .filter((log) => {
+                        const user = log.user || {};
+                        const searchStr = `${user.name || ""} ${user.email || ""} ${user.uniqueId || ""} ${log.ipAddress || ""}`.toLowerCase();
+                        const matchesSearch = searchStr.includes(auditSearch.toLowerCase());
+                        const matchesStatus = auditStatusFilter === "all" || log.status === auditStatusFilter;
+                        const matchesDevice = auditDeviceFilter === "all" || log.device === auditDeviceFilter;
+                        return matchesSearch && matchesStatus && matchesDevice;
+                      })
+                      .map((item, idx) => (
+                        <tr key={item._id || idx} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="py-3.5 px-4 font-sans">
+                            {item.user ? (
+                              <div className="flex flex-col">
+                                <span className="font-bold text-slate-800 text-[13px]">{item.user.name}</span>
+                                <span className="text-[10px] text-slate-400 font-normal">{item.user.email}</span>
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 italic">Unknown User</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-[11px] text-slate-500">
+                            {new Date(item.timestamp).toLocaleString("en-IN", {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            })}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            {item.status === "Successful" ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                Successful
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100">
+                                Failed
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 font-sans text-slate-600">
+                            {item.device === "Mobile" ? "📱 Phone" : item.device === "Tablet" ? "📟 Tablet" : item.device === "Laptop" ? "💻 Laptop" : "🖥️ Desktop"}
+                          </td>
+                          <td className="py-3.5 px-4 font-sans text-slate-500 font-normal">
+                            {item.browser} <span className="text-slate-400">on</span> {item.os}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-[11px] text-slate-400 font-normal">
+                            {item.ipAddress}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile/Tablet Card List View */}
+              <div className="block md:hidden space-y-3.5">
+                {auditLogs
+                  .filter((log) => {
+                    const user = log.user || {};
+                    const searchStr = `${user.name || ""} ${user.email || ""} ${user.uniqueId || ""} ${log.ipAddress || ""}`.toLowerCase();
+                    const matchesSearch = searchStr.includes(auditSearch.toLowerCase());
+                    const matchesStatus = auditStatusFilter === "all" || log.status === auditStatusFilter;
+                    const matchesDevice = auditDeviceFilter === "all" || log.device === auditDeviceFilter;
+                    return matchesSearch && matchesStatus && matchesDevice;
+                  })
+                  .map((item, idx) => (
+                    <div key={item._id || idx} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/30 hover:bg-slate-50 transition-all space-y-3.5 text-xs shadow-sm">
+                      <div className="flex justify-between items-start">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-slate-800 text-[13px]">{item.user?.name || "Unknown User"}</span>
+                          <span className="text-[10px] text-slate-400 font-normal">{item.user?.email || ""}</span>
+                        </div>
+                        {item.status === "Successful" ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                            Successful
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-700 border border-rose-100">
+                            Failed
+                          </span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 pt-1.5 text-slate-600">
+                        <div>
+                          <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider mb-0.5">Device</span>
+                          <span className="font-semibold">{item.device === "Mobile" ? "📱 Phone" : item.device === "Tablet" ? "📟 Tablet" : item.device === "Laptop" ? "💻 Laptop" : "🖥️ Desktop"}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider mb-0.5">IP Address</span>
+                          <span className="font-mono text-[11px] text-slate-500 font-bold">{item.ipAddress || "Unknown"}</span>
+                        </div>
+                      </div>
+                      <div className="pt-2.5 border-t border-slate-100/60 flex justify-between items-center text-[10px] text-slate-400 font-medium">
+                        <span className="font-mono">
+                          {new Date(item.timestamp).toLocaleString("en-IN", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}
+                        </span>
+                        <span>
+                          {item.browser} on {item.os}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

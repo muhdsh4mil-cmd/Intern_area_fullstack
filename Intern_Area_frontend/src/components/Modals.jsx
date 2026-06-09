@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { loginUser, registerUser } from "../api/authAPI";
+import { loginUser, registerUser, verifyLoginOTP, getBrowserInfo } from "../api/authAPI";
 
 function readCustomResumeFile(file) {
   const MAX_BYTES = 2 * 1024 * 1024;
@@ -33,6 +33,11 @@ export default function Modals({
   const [loginPass, setLoginPass] = useState("");
   const [loginRole, setLoginRole] = useState("candidate"); // 'candidate' or 'employer'
 
+  // Chrome OTP Verification States
+  const [loginStep, setLoginStep] = useState("credentials"); // 'credentials' or 'chrome-otp'
+  const [loginUserId, setLoginUserId] = useState("");
+  const [otpValue, setOtpValue] = useState("");
+
   // Register Form States
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
@@ -62,7 +67,24 @@ export default function Modals({
     setAuthError("");
     setAuthLoading(true);
     try {
-      const userData = await loginUser({ email: loginEmail, password: loginPass });
+      const browserInfo = {
+        ...getBrowserInfo(),
+        chromeSessionVerified: sessionStorage.getItem("chrome_session_verified") === "true",
+      };
+      const userData = await loginUser({
+        email: loginEmail,
+        password: loginPass,
+        browserInfo,
+      });
+
+      if (userData.requiresOTP) {
+        setLoginStep("chrome-otp");
+        setLoginUserId(userData.userId);
+        return;
+      }
+
+      sessionStorage.setItem("chrome_session_verified", "true");
+
       // Save token and user to localStorage
       localStorage.setItem("internarea_token", userData.token);
       localStorage.setItem("internarea_user", JSON.stringify(userData));
@@ -111,7 +133,26 @@ export default function Modals({
     setAuthError("");
     setAuthLoading(true);
     try {
-      const userData = await loginUser({ email: adminUser, password: adminPass });
+      const browserInfo = {
+        ...getBrowserInfo(),
+        chromeSessionVerified: sessionStorage.getItem("chrome_session_verified") === "true",
+      };
+      const userData = await loginUser({
+        email: adminUser,
+        password: adminPass,
+        browserInfo,
+      });
+
+      if (userData.requiresOTP) {
+        setLoginStep("chrome-otp");
+        setLoginUserId(userData.userId);
+        setLoginEmail(adminUser);
+        setLoginPass(adminPass);
+        return;
+      }
+
+      sessionStorage.setItem("chrome_session_verified", "true");
+
       // Save token and user to localStorage
       localStorage.setItem("internarea_token", userData.token);
       localStorage.setItem("internarea_user", JSON.stringify(userData));
@@ -121,6 +162,59 @@ export default function Modals({
       onClose();
     } catch (err) {
       setAuthError(err.response?.data?.message || "Admin login failed. Please check your credentials.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleOTPSubmit = async (e) => {
+    e.preventDefault();
+    if (!otpValue || otpValue.length !== 6) return;
+    setAuthError("");
+    setAuthLoading(true);
+    try {
+      const browserInfo = {
+        ...getBrowserInfo(),
+        chromeSessionVerified: sessionStorage.getItem("chrome_session_verified") === "true",
+      };
+      const userData = await verifyLoginOTP({
+        userId: loginUserId,
+        otp: otpValue,
+        browserInfo,
+      });
+
+      sessionStorage.setItem("chrome_session_verified", "true");
+
+      localStorage.setItem("internarea_token", userData.token);
+      localStorage.setItem("internarea_user", JSON.stringify(userData));
+      onSubmitAuth(userData);
+      setLoginEmail("");
+      setLoginPass("");
+      setAdminUser("");
+      setAdminPass("");
+      setOtpValue("");
+      setLoginStep("credentials");
+      onClose();
+    } catch (err) {
+      setAuthError(err.response?.data?.message || "Verification failed. Please check your code.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setAuthError("");
+    setAuthLoading(true);
+    try {
+      await loginUser({
+        email: loginEmail,
+        password: loginPass,
+        browserInfo: getBrowserInfo(),
+      });
+      setOtpValue("");
+      setAuthError("New verification code sent to your email!");
+    } catch (err) {
+      setAuthError(err.response?.data?.message || "Failed to resend verification code.");
     } finally {
       setAuthLoading(false);
     }
@@ -166,6 +260,9 @@ export default function Modals({
     setAvailabilityText("");
     setUploadedFileName("");
     setUploadedFile(null);
+    setLoginStep("credentials");
+    setOtpValue("");
+    setAuthError("");
     onClose();
   };
 
@@ -191,15 +288,70 @@ export default function Modals({
           </button>
         )}
 
-        {/* 1. Login Modal Content */}
-        {activeModal === "login" && (
+        {/* 1. Chrome OTP Verification Step (Candidate, Employer, Admin) */}
+        {loginStep === "chrome-otp" && (
+          <div className="p-6 sm:p-8">
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xl mx-auto mb-3">
+                📧
+              </div>
+              <h3 className="font-outfit font-extrabold text-2xl text-slate-800">Verification Code</h3>
+              <p className="text-slate-400 text-xs mt-1 font-sans">
+                We've sent a 6-digit OTP to your registered email address.
+              </p>
+            </div>
+
+            <form onSubmit={handleOTPSubmit} className="space-y-6">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-outfit text-center">
+                  Enter 6-Digit OTP
+                </label>
+                <input
+                  type="text"
+                  maxLength="6"
+                  placeholder="0 0 0 0 0 0"
+                  value={otpValue}
+                  onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, ""))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-center text-xl font-bold tracking-[8px] outline-none focus:border-primary focus:bg-white transition-all font-mono"
+                  required
+                />
+              </div>
+
+              {authError && (
+                <p className="text-xs text-red-500 font-semibold bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-center font-sans">
+                  {authError}
+                </p>
+              )}
+
+              <div className="flex flex-col space-y-3">
+                <button
+                  type="submit"
+                  disabled={authLoading || otpValue.length !== 6}
+                  className="w-full py-3 text-sm font-bold text-white bg-primary hover:bg-primary-dark rounded-xl shadow-md transform active:scale-98 transition-all disabled:opacity-60"
+                >
+                  {authLoading ? "Verifying..." : "Verify & Sign In"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResendOTP}
+                  disabled={authLoading}
+                  className="text-xs text-slate-500 hover:text-primary font-semibold transition-colors py-1 text-center hover:underline"
+                >
+                  Resend Verification Code
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* 2. Login Modal Content */}
+        {activeModal === "login" && loginStep !== "chrome-otp" && (
           <div className="p-6 sm:p-8">
             <div className="text-center mb-6">
               <h3 className="font-outfit font-extrabold text-2xl text-slate-800">Welcome Back</h3>
               <p className="text-slate-400 text-xs mt-1">Sign in to search and apply for openings</p>
             </div>
-
-
 
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
@@ -224,10 +376,22 @@ export default function Modals({
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary focus:bg-white transition-all"
                   required
                 />
+                <div className="flex justify-end mt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      setView("forgot-password");
+                    }}
+                    className="text-[11px] text-primary hover:text-primary-dark font-bold transition-colors hover:underline"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
               </div>
 
               {authError && (
-                <p className="text-xs text-red-500 font-semibold bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                <p className="text-xs text-red-500 font-semibold bg-red-50 border border-red-100 rounded-lg px-3 py-2 font-sans">
                   {authError}
                 </p>
               )}
@@ -243,7 +407,7 @@ export default function Modals({
         )}
 
         {/* Admin Login Modal Content */}
-        {activeModal === "admin-login" && (
+        {activeModal === "admin-login" && loginStep !== "chrome-otp" && (
           <div className="p-6 sm:p-8">
             <div className="text-center mb-6">
               <h3 className="font-outfit font-extrabold text-2xl text-slate-800">Admin Access</h3>
@@ -278,7 +442,7 @@ export default function Modals({
               </div>
 
               {authError && (
-                <p className="text-xs text-red-500 font-semibold bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                <p className="text-xs text-red-500 font-semibold bg-red-50 border border-red-100 rounded-lg px-3 py-2 font-sans">
                   {authError}
                 </p>
               )}

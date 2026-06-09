@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import JobCard from "./JobCard";
 import { mockJobs } from "../data/mockData";
+import { useLanguage } from "../i18n/LanguageContext";
 
 export default function JobSearch({
   searchQuery,
@@ -8,6 +9,7 @@ export default function JobSearch({
   onApply,
   jobs = [],
 }) {
+  const { t } = useLanguage();
   const [filteredJobs, setFilteredJobs] = useState(jobs);
   const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -104,12 +106,12 @@ export default function JobSearch({
         {/* Sidebar Filters */}
         <div className="lg:col-span-1 bg-white border border-slate-100 rounded-2xl p-6 shadow-sm h-fit">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="font-outfit font-bold text-slate-800 text-lg">Filters</h3>
+            <h3 className="font-outfit font-bold text-slate-800 text-lg">{t("jobs_filter")}</h3>
             <button
               onClick={handleResetFilters}
               className="text-xs font-semibold text-primary hover:text-primary-dark transition-colors"
             >
-              Clear All
+              {t("jobs_clear_all")}
             </button>
           </div>
 
@@ -123,21 +125,21 @@ export default function JobSearch({
                   onChange={(e) => setOnlyRemote(e.target.checked)}
                   className="rounded text-primary focus:ring-primary w-4.5 h-4.5 border-slate-300"
                 />
-                <span className="text-sm font-medium">Work from home / Remote</span>
+                <span className="text-sm font-medium">{t("jobs_work_from_home")}</span>
               </label>
             </div>
 
             {/* Profile Category Select */}
             <div>
               <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 font-outfit">
-                Profile Category
+                {t("jobs_profile_category")}
               </label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 outline-none focus:border-primary transition-colors"
               >
-                <option value="">Choose category...</option>
+                <option value="">{t("jobs_choose_category")}</option>
                 {categories.map((cat, idx) => (
                   <option key={idx} value={cat}>{cat}</option>
                 ))}
@@ -147,14 +149,14 @@ export default function JobSearch({
             {/* Location Select */}
             <div>
               <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 font-outfit">
-                Preferred Location
+                {t("jobs_preferred_location")}
               </label>
               <select
                 value={selectedLocation}
                 onChange={(e) => setSelectedLocation(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 outline-none focus:border-primary transition-colors"
               >
-                <option value="">Choose location...</option>
+                <option value="">{t("jobs_choose_location")}</option>
                 {locations.map((loc, idx) => (
                   <option key={idx} value={loc}>{loc}</option>
                 ))}
@@ -164,7 +166,7 @@ export default function JobSearch({
             {/* Job Type Toggle */}
             <div>
               <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 font-outfit">
-                Position Type
+                {t("jobs_position_type")}
               </label>
               <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100">
                 <button
@@ -173,7 +175,7 @@ export default function JobSearch({
                     jobType === "all" ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:text-slate-700"
                   }`}
                 >
-                  All
+                  {t("jobs_all")}
                 </button>
                 <button
                   onClick={() => setJobType("internship")}
@@ -181,7 +183,7 @@ export default function JobSearch({
                     jobType === "internship" ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:text-slate-700"
                   }`}
                 >
-                  Internships
+                  {t("jobs_internships")}
                 </button>
                 <button
                   onClick={() => setJobType("job")}
@@ -189,7 +191,7 @@ export default function JobSearch({
                     jobType === "job" ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:text-slate-700"
                   }`}
                 >
-                  Jobs
+                  {t("jobs_jobs")}
                 </button>
               </div>
             </div>
@@ -198,10 +200,10 @@ export default function JobSearch({
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider font-outfit">
-                  Min Monthly Stipend / Salary
+                  {t("jobs_min_stipend")}
                 </label>
                 <span className="text-xs font-bold text-primary">
-                  {stipendLimit === 0 ? "Any" : `₹${stipendLimit.toLocaleString()}`}
+                  {stipendLimit === 0 ? t("jobs_any") : `₹${stipendLimit.toLocaleString()}`}
                 </span>
               </div>
               <input
@@ -214,7 +216,7 @@ export default function JobSearch({
                 className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-primary"
               />
               <div className="flex justify-between text-[10px] text-slate-400 font-medium mt-1">
-                <span>Any</span>
+                <span>{t("jobs_any")}</span>
                 <span>₹25K</span>
                 <span>₹50K+</span>
               </div>
@@ -230,10 +232,10 @@ export default function JobSearch({
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
             <div>
               <h2 className="font-outfit font-extrabold text-2xl text-slate-800">
-                {searchQuery ? `Search results for "${searchQuery}"` : "Matching Opportunities"}
+                {searchQuery ? `${t("jobs_search_results")} "${searchQuery}"` : t("jobs_matching_opps")}
               </h2>
               <p className="text-slate-400 text-xs mt-1">
-                {filteredJobs.length} opportunities matching your preferences
+                {filteredJobs.length} {t("jobs_opportunities_count")}
               </p>
             </div>
 
@@ -275,15 +277,15 @@ export default function JobSearch({
           ) : (
             <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center shadow-sm">
               <span className="text-5xl block mb-4">🔍</span>
-              <h3 className="font-outfit font-bold text-lg text-slate-800 mb-2">No matching opportunities found</h3>
+              <h3 className="font-outfit font-bold text-lg text-slate-800 mb-2">{t("jobs_no_results_title")}</h3>
               <p className="text-slate-400 text-sm max-w-md mx-auto mb-6">
-                Try loosening your filters, resetting the search bar query, or exploring different remote positions.
+                {t("jobs_no_results_sub")}
               </p>
               <button
                 onClick={handleResetFilters}
                 className="px-5 py-2.5 text-sm font-semibold text-white bg-primary hover:bg-primary-dark rounded-xl shadow-sm transition-all"
               >
-                Reset Search Filters
+                {t("jobs_reset_filters")}
               </button>
             </div>
           )}
@@ -335,33 +337,33 @@ export default function JobSearch({
               {/* Highlight statistics grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
                 <div>
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider font-outfit">Location</span>
+                  <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider font-outfit">{t("jobs_location")}</span>
                   <span className="text-sm font-bold text-slate-700">{activeJob.location}</span>
                 </div>
                 <div>
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider font-outfit">Stipend / Salary</span>
+                  <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider font-outfit">{t("jobs_stipend_salary")}</span>
                   <span className="text-sm font-bold text-primary">{activeJob.stipend.split(" / ")[0]}</span>
                 </div>
                 <div>
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider font-outfit">Duration</span>
+                  <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider font-outfit">{t("jobs_duration")}</span>
                   <span className="text-sm font-bold text-slate-700">{activeJob.duration}</span>
                 </div>
                 <div>
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider font-outfit">Openings</span>
-                  <span className="text-sm font-bold text-slate-700">{activeJob.openings} positions</span>
+                  <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider font-outfit">{t("jobs_openings")}</span>
+                  <span className="text-sm font-bold text-slate-700">{activeJob.openings} {t("jobs_positions")}</span>
                 </div>
               </div>
 
               {/* Job Description */}
               <div>
-                <h4 className="font-outfit font-bold text-slate-800 text-sm tracking-wider uppercase mb-3">About the Position</h4>
+                <h4 className="font-outfit font-bold text-slate-800 text-sm tracking-wider uppercase mb-3">{t("jobs_about_position")}</h4>
                 <p className="text-slate-600 text-sm leading-relaxed">{activeJob.description}</p>
               </div>
 
               {/* Responsibilities list */}
               {activeJob.responsibilities && (
                 <div>
-                  <h4 className="font-outfit font-bold text-slate-800 text-sm tracking-wider uppercase mb-3">Key Responsibilities</h4>
+                  <h4 className="font-outfit font-bold text-slate-800 text-sm tracking-wider uppercase mb-3">{t("jobs_key_responsibilities")}</h4>
                   <ul className="space-y-2 text-slate-600 text-sm">
                     {activeJob.responsibilities.map((resp, idx) => (
                       <li key={idx} className="flex items-start">
@@ -376,7 +378,7 @@ export default function JobSearch({
               {/* Requirements list */}
               {activeJob.requirements && (
                 <div>
-                  <h4 className="font-outfit font-bold text-slate-800 text-sm tracking-wider uppercase mb-3">Candidate Requirements</h4>
+                  <h4 className="font-outfit font-bold text-slate-800 text-sm tracking-wider uppercase mb-3">{t("jobs_requirements")}</h4>
                   <ul className="space-y-2 text-slate-600 text-sm">
                     {activeJob.requirements.map((req, idx) => (
                       <li key={idx} className="flex items-start">
@@ -390,7 +392,7 @@ export default function JobSearch({
 
               {/* Full skills list */}
               <div>
-                <h4 className="font-outfit font-bold text-slate-800 text-sm tracking-wider uppercase mb-3">Required Technical Skills</h4>
+                <h4 className="font-outfit font-bold text-slate-800 text-sm tracking-wider uppercase mb-3">{t("jobs_tech_skills")}</h4>
                 <div className="flex flex-wrap gap-2">
                   {activeJob.skills.map((skill, idx) => (
                     <span
@@ -411,7 +413,7 @@ export default function JobSearch({
                 onClick={() => { setActiveJob(null); onApply(activeJob); }}
                 className="w-full text-center py-3.5 text-sm font-bold text-white bg-primary hover:bg-primary-dark rounded-xl shadow-md hover:shadow-lg transform active:scale-98 transition-all"
               >
-                Apply to {activeJob.company} Now
+                {t("jobs_apply_to")} {activeJob.company} {t("jobs_apply_now_btn")}
               </button>
             </div>
 

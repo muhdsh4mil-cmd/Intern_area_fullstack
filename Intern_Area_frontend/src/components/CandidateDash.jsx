@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { mockJobs } from "../data/mockData";
 import RecommendedRoleCard from "./RecommendedRoleCard";
 import { SUPERHERO_AVATARS } from "../data/avatars";
+import { useLanguage } from "../i18n/LanguageContext";
+
 
 const trendingCards = [
   {
@@ -72,8 +74,10 @@ const trendingCards = [
 ];
 
 export default function CandidateDash({ user, setView, setSearchQuery }) {
+  const { t } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cardsPerPage, setCardsPerPage] = useState(3);
+
 
   // Load preferences from localStorage
   const [preferences, setPreferences] = useState(() => {
@@ -194,13 +198,14 @@ export default function CandidateDash({ user, setView, setSearchQuery }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         
         {/* Greeting Header */}
+        {/* Greeting Header */}
         <div className="mb-10 bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden flex flex-col sm:flex-row justify-between items-center gap-6 animate-fade-in">
           <div className="relative z-10">
             <h1 className="font-outfit font-extrabold text-3xl sm:text-4xl tracking-tight flex items-center">
-              Hi, {user.name}! <span className="animate-bounce ml-2.5">👋</span>
+              {t("dash_hi_greeting")} {user.name}! <span className="animate-bounce ml-2.5">👋</span>
             </h1>
             <p className="text-slate-300 font-medium text-sm sm:text-base mt-2">
-              Complete your profile to start applying for internships and jobs
+              {t("dash_complete_profile")}
             </p>
           </div>
           {/* Active profile avatar illustration in header */}
@@ -214,11 +219,12 @@ export default function CandidateDash({ user, setView, setSearchQuery }) {
         </div>
 
 
+
         {/* Trending Banners Section */}
         <div className="mb-12 mt-4">
           <div className="text-center mb-8">
             <h2 className="font-outfit font-extrabold text-2xl text-slate-800 tracking-tight flex items-center justify-center gap-2">
-              Trending on Intern Area <span className="animate-bounce">🔥</span>
+              {t("dash_trending")} <span className="animate-bounce">🔥</span>
             </h2>
           </div>
           
@@ -362,12 +368,12 @@ export default function CandidateDash({ user, setView, setSearchQuery }) {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h3 className="font-outfit font-extrabold text-slate-800 text-lg sm:text-xl flex items-center gap-2">
-                Recommended Jobs
+                {t("dash_rec_jobs")}
                 <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                  Full-Time Roles
+                  {t("dash_full_time")}
                 </span>
               </h3>
-              <p className="text-xs text-slate-400 mt-1">Kickstart your career with long-term opportunities</p>
+              <p className="text-xs text-slate-400 mt-1">{t("dash_rec_jobs_sub")}</p>
             </div>
             <span
               onClick={() => {
@@ -376,7 +382,7 @@ export default function CandidateDash({ user, setView, setSearchQuery }) {
               }}
               className="text-xs text-primary font-bold hover:underline cursor-pointer"
             >
-              View all jobs →
+              {t("dash_view_all_jobs")}
             </span>
           </div>
 
@@ -392,12 +398,12 @@ export default function CandidateDash({ user, setView, setSearchQuery }) {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h3 className="font-outfit font-extrabold text-slate-800 text-lg sm:text-xl flex items-center gap-2">
-                Recommended Internships
+                {t("dash_rec_internships")}
                 <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                  Paid Stipends
+                  {t("dash_paid_stipends")}
                 </span>
               </h3>
-              <p className="text-xs text-slate-400 mt-1">Gain industry experience with high-growth companies</p>
+              <p className="text-xs text-slate-400 mt-1">{t("dash_internships_sub")}</p>
             </div>
             <span
               onClick={() => {
@@ -406,7 +412,7 @@ export default function CandidateDash({ user, setView, setSearchQuery }) {
               }}
               className="text-xs text-primary font-bold hover:underline cursor-pointer"
             >
-              View all internships →
+              {t("dash_view_all_internships")}
             </span>
           </div>
 
@@ -421,3 +427,4 @@ export default function CandidateDash({ user, setView, setSearchQuery }) {
     </div>
   );
 }
+

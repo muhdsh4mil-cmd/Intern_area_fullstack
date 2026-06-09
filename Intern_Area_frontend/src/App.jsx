@@ -14,12 +14,16 @@ import MyApplications from "./components/MyApplications";
 import Friends from "./components/Friends";
 import Community from "./components/Community";
 import Messages from "./components/Messages";
+import ForgotPassword from "./components/ForgotPassword";
+import PricingPlans from "./components/PricingPlans";
 import { SUPERHERO_AVATARS } from "./data/avatars";
 import { submitApplication, fetchMyApplications, fetchAllApplications, updateApplicationStatus as updateAppStatusAPI, deleteApplication as deleteAppAPI } from "./api/applicationsAPI";
 import { createJob } from "./api/jobsAPI";
-import { logoutUser, googleLogin as apiGoogleLogin, getMe } from "./api/authAPI";
+import { logoutUser, googleLogin as apiGoogleLogin, getMe, getBrowserInfo } from "./api/authAPI";
 import { auth, googleProvider } from "./config/firebase";
 import { signInWithPopup } from "firebase/auth";
+import { useLanguage } from "./i18n/LanguageContext";
+import { requestFrenchOTP, verifyFrenchOTP, updateLanguagePreference } from "./api/languageAPI";
 
 import { mockJobs, mockCategories, initialApplications } from "./data/mockData";
 
@@ -34,6 +38,7 @@ function workspaceViewForUser(user) {
 }
 
 export default function App() {
+  const { language, setLanguage, t, syncLanguageFromUser } = useLanguage();
   const [currentView, setView] = useState("landing");
   const [user, setUser] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -47,6 +52,13 @@ export default function App() {
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   // Active chat friend ID — set when clicking Message from Friends page or navbar dropdown
   const [activeChatFriendId, setActiveChatFriendId] = useState(null);
+
+  // ─── French OTP Modal State ────────────────────────────────────────────────────
+  const [frenchOTPModalOpen, setFrenchOTPModalOpen] = useState(false);
+  const [frenchOTPStep, setFrenchOTPStep] = useState("idle"); // 'idle' | 'sending' | 'enter' | 'verifying' | 'success' | 'error'
+  const [frenchOTPValue, setFrenchOTPValue] = useState("");
+  const [frenchOTPMaskedEmail, setFrenchOTPMaskedEmail] = useState("");
+  const [frenchOTPError, setFrenchOTPError] = useState("");
 
   // Restore session from localStorage on app load
   useEffect(() => {
@@ -64,6 +76,8 @@ export default function App() {
             const updatedUser = { ...freshUser, token: savedToken };
             setUser(updatedUser);
             localStorage.setItem("internarea_user", JSON.stringify(updatedUser));
+            // Sync language from backend user profile
+            syncLanguageFromUser(freshUser);
           })
           .catch((err) => {
             console.error("Failed to refresh user data", err);
@@ -132,7 +146,8 @@ export default function App() {
       const backendUser = await apiGoogleLogin({
         email: firebaseUser.email,
         name: firebaseUser.displayName || "Google User",
-        avatar: firebaseUser.photoURL || ""
+        avatar: firebaseUser.photoURL || "",
+        browserInfo: getBrowserInfo()
       });
 
       localStorage.setItem("internarea_token", backendUser.token);
@@ -166,6 +181,68 @@ export default function App() {
     localStorage.removeItem("internarea_user");
     addToast("Signed out successfully. Come back soon!", "info");
     setView("landing");
+  };
+
+  // ─── Language Change Handler ────────────────────────────────────────────────
+  const handleLanguageChange = async (lang) => {
+    if (lang === "fr") {
+      // French requires OTP verification
+      if (!user) {
+        addToast("Please log in to enable French language verification.", "info");
+        openModal("login");
+        return;
+      }
+      setFrenchOTPModalOpen(true);
+      setFrenchOTPStep("idle");
+      setFrenchOTPValue("");
+      setFrenchOTPError("");
+      return;
+    }
+    // For all other languages — apply immediately
+    setLanguage(lang);
+    if (user) {
+      try {
+        await updateLanguagePreference({ language: lang });
+      } catch (e) {
+        // Non-critical — local preference still applied
+      }
+    }
+  };
+
+  const handleFrenchOTPSend = async () => {
+    setFrenchOTPStep("sending");
+    setFrenchOTPError("");
+    try {
+      const res = await requestFrenchOTP();
+      setFrenchOTPMaskedEmail(res.email || "");
+      setFrenchOTPStep("enter");
+    } catch (err) {
+      setFrenchOTPError(err.response?.data?.message || "Failed to send code. Please try again.");
+      setFrenchOTPStep("error");
+    }
+  };
+
+  const handleFrenchOTPVerify = async () => {
+    if (frenchOTPValue.trim().length !== 6) {
+      setFrenchOTPError("Please enter the complete 6-digit code.");
+      return;
+    }
+    setFrenchOTPStep("verifying");
+    setFrenchOTPError("");
+    try {
+      await verifyFrenchOTP({ otp: frenchOTPValue.trim() });
+      setLanguage("fr");
+      setFrenchOTPStep("success");
+      addToast("🇫🇷 French language activated successfully!", "success");
+      // Auto-close after 2 seconds
+      setTimeout(() => {
+        setFrenchOTPModalOpen(false);
+        setFrenchOTPStep("idle");
+      }, 2000);
+    } catch (err) {
+      setFrenchOTPError(err.response?.data?.message || "Invalid code. Please try again.");
+      setFrenchOTPStep("enter");
+    }
   };
 
   const returnToApplyModal = () => {
@@ -221,7 +298,7 @@ export default function App() {
       await submitApplication({
         jobId: selectedApplyJob._id || selectedApplyJob.id,
         coverLetter: coverLetterText,
-        resumeUrl: "resume_profile.pdf",
+        resumeUrl: user.resumeUrl || "resume_profile.pdf",
         customResumeName: customResumeMeta?.name ?? "",
       });
 
@@ -231,7 +308,7 @@ export default function App() {
         jobId: selectedApplyJob._id || selectedApplyJob.id,
         candidateName: user.name,
         email: user.email,
-        resumeUrl: "resume_profile.pdf",
+        resumeUrl: user.resumeUrl || "resume_profile.pdf",
         coverLetter: coverLetterText,
         customResumeName: customResumeMeta?.name ?? null,
         customResumeDataUrl: customResumeMeta?.dataUrl ?? null,
@@ -243,10 +320,15 @@ export default function App() {
       };
       setApplications((prev) => [newApp, ...prev]);
     } catch (err) {
-      // If already applied or API error, fall back to local mock behavior
+      // If already applied or plan limit reached
       const errMsg = err.response?.data?.message || "";
       if (errMsg.includes("already applied")) {
         addToast("You have already applied for this position.", "info");
+        return;
+      }
+      if (err.response?.status === 403 && (errMsg.includes("limit") || errMsg.includes("Plan"))) {
+        addToast(`${errMsg} Go to Plans to upgrade! 🚀`, "info");
+        setView("pricing");
         return;
       }
       // Offline fallback — still add to local state
@@ -255,7 +337,7 @@ export default function App() {
         jobId: selectedApplyJob._id || selectedApplyJob.id,
         candidateName: user.name,
         email: user.email,
-        resumeUrl: "resume_profile.pdf",
+        resumeUrl: user.resumeUrl || "resume_profile.pdf",
         coverLetter: coverLetterText,
         customResumeName: customResumeMeta?.name ?? null,
         customResumeDataUrl: customResumeMeta?.dataUrl ?? null,
@@ -404,6 +486,8 @@ export default function App() {
           }
           setView("messages");
         }}
+        onLanguageChange={handleLanguageChange}
+        currentLanguage={language}
       />
 
       {/* CORE VIEW ROUTER */}
@@ -425,10 +509,10 @@ export default function App() {
             <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
               <div className="text-center mb-12">
                 <h2 className="font-outfit font-extrabold text-3xl text-slate-800 tracking-tight">
-                  Popular Categories to Explore
+                  {t("hero_categories_title")}
                 </h2>
                 <p className="text-slate-400 text-sm mt-1">
-                  Discover highly verified jobs and internships in top high-tech domains
+                  {t("hero_categories_sub")}
                 </p>
               </div>
 
@@ -455,20 +539,20 @@ export default function App() {
               
               <div className="max-w-3xl relative z-10 space-y-6">
                 <span className="bg-primary/20 text-primary-light text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest border border-primary/20 font-outfit">
-                  Career Acceleration Program
+                  {t("hero_cta_program")}
                 </span>
                 <h2 className="font-outfit font-extrabold text-3xl sm:text-4xl lg:text-5xl leading-tight">
-                  Launch Your Professional Journey Today
+                  {t("hero_cta_headline")}
                 </h2>
                 <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-                  Gain access to exclusive listings, direct HR chat connect channels, and recognized specialization certificates that stand out.
+                  {t("hero_cta_subtext")}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 pt-2">
                   <button
                     onClick={() => setView("jobs")}
                     className="px-6 py-3 text-sm font-bold text-white bg-primary hover:bg-primary-dark rounded-xl shadow-md hover:shadow-lg transition-all text-center"
                   >
-                    Explore Job Board
+                    {t("hero_explore_jobs")}
                   </button>
                   <button
                     onClick={() => {
@@ -486,7 +570,7 @@ export default function App() {
                     }}
                     className="px-6 py-3 text-sm font-semibold text-slate-300 hover:text-white bg-white/10 hover:bg-white/15 rounded-xl border border-white/10 transition-all text-center"
                   >
-                    {user ? "Go to your profile" : "Create Free Profile"}
+                    {user ? t("hero_cta_dashboard") : t("hero_cta_register")}
                   </button>
                 </div>
               </div>
@@ -494,10 +578,10 @@ export default function App() {
               {/* Stats Bar */}
               <div className="relative z-10 border-t border-white/10 mt-8 pt-8 grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-0">
                 {[
-                  { value: "300K+", label: "companies hiring" },
-                  { value: "10K+", label: "new openings everyday" },
-                  { value: "21Mn+", label: "active students" },
-                  { value: "600K+", label: "learners" },
+                  { value: "300K+", label: t("hero_stat_companies") },
+                  { value: "10K+", label: t("hero_stat_openings") },
+                  { value: "21Mn+", label: t("hero_stat_students") },
+                  { value: "600K+", label: t("hero_stat_learners") },
                 ].map((stat, idx) => (
                   <div
                     key={idx}
@@ -570,8 +654,12 @@ export default function App() {
               setView={setView}
               returnToApplyAfterResume={resumeApplyReturnPending}
               onReturnToApply={returnToApplyModal}
-              onSave={() => {
-                addToast("Resume updated successfully!", "success");
+              addToast={addToast}
+              onSave={(updatedUser) => {
+                if (updatedUser) {
+                  setUser(updatedUser);
+                  localStorage.setItem("internarea_user", JSON.stringify(updatedUser));
+                }
                 if (resumeApplyReturnPending && selectedApplyJob) {
                   returnToApplyModal();
                 } else {
@@ -590,6 +678,7 @@ export default function App() {
               onSave={(prefData) => {
                 addToast("Preferences saved! Your recommendations have been updated.", "success");
               }}
+              onLanguageChange={handleLanguageChange}
             />
           </div>
         )}
@@ -635,13 +724,31 @@ export default function App() {
             />
           </div>
         )}
+
+        {currentView === "forgot-password" && (
+          <div className="animate-fade-in">
+            <ForgotPassword
+              setView={setView}
+              onOpenModal={openModal}
+            />
+          </div>
+        )}
+
+        {currentView === "pricing" && user && (
+          <div className="animate-fade-in">
+            <PricingPlans
+              user={user}
+              setView={setView}
+              addToast={addToast}
+            />
+          </div>
+        )}
       </main>
 
-      {/* Absolute high-fidelity footer */}
       <footer className="bg-slate-950 text-slate-500 py-12 border-t border-slate-900 mt-auto text-xs px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-3 gap-8 mb-12">
           <div>
-            <h5 className="font-outfit font-bold text-slate-300 uppercase tracking-wider mb-4">Opportunities</h5>
+            <h5 className="font-outfit font-bold text-slate-300 uppercase tracking-wider mb-4">{t("footer_opportunities")}</h5>
             <ul className="space-y-2.5">
               <li><a href="#" className="hover:text-primary transition-colors">IT internships</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">Marketing jobs</a></li>
@@ -651,7 +758,7 @@ export default function App() {
           </div>
 
           <div>
-            <h5 className="font-outfit font-bold text-slate-300 uppercase tracking-wider mb-4">About Intern Area</h5>
+            <h5 className="font-outfit font-bold text-slate-300 uppercase tracking-wider mb-4">{t("footer_about")}</h5>
             <ul className="space-y-2.5">
               <li><a href="#" className="hover:text-primary transition-colors">Our Story</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">Careers at Intern Area</a></li>
@@ -660,7 +767,7 @@ export default function App() {
             </ul>
           </div>
           <div>
-            <h5 className="font-outfit font-bold text-slate-300 uppercase tracking-wider mb-4">Legal & Support</h5>
+            <h5 className="font-outfit font-bold text-slate-300 uppercase tracking-wider mb-4">{t("footer_legal")}</h5>
             <ul className="space-y-2.5">
               <li><a href="#" className="hover:text-primary transition-colors">Terms & Conditions</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">Privacy Policy</a></li>
@@ -671,7 +778,7 @@ export default function App() {
         </div>
 
         <div className="max-w-7xl mx-auto border-t border-slate-900 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[11px]">
-          <p>© 2026 Intern Area. Replicated & upgraded with pride for Antigravity pair programming. All rights reserved.</p>
+          <p>© 2026 Intern Area. {t("footer_rights")}</p>
           <div className="flex space-x-4">
             <a href="#" className="hover:text-primary transition-colors">LinkedIn</a>
             <a href="#" className="hover:text-primary transition-colors">Twitter</a>
@@ -778,6 +885,142 @@ export default function App() {
                   className="text-xs text-red-500 hover:text-red-700 font-bold transition-colors cursor-pointer bg-red-50 hover:bg-red-100 px-4 py-2 rounded-xl"
                 >
                   Reset to Default Profile Picture
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── French Language OTP Verification Modal ─────────────────────────────── */}
+      {frenchOTPModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-fade-in">
+          {/* Backdrop */}
+          <div
+            onClick={() => { if (frenchOTPStep !== "verifying" && frenchOTPStep !== "sending") { setFrenchOTPModalOpen(false); setFrenchOTPStep("idle"); } }}
+            className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm"
+          />
+          {/* Modal */}
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full relative z-10 p-8 animate-scale-up">
+            {/* Close button */}
+            {frenchOTPStep !== "verifying" && frenchOTPStep !== "sending" && frenchOTPStep !== "success" && (
+              <button
+                onClick={() => { setFrenchOTPModalOpen(false); setFrenchOTPStep("idle"); }}
+                className="absolute right-4 top-4 p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+
+            {/* Header */}
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-red-500 flex items-center justify-center text-3xl mx-auto mb-4 shadow-lg">
+                🇫🇷
+              </div>
+              <h3 className="font-outfit font-extrabold text-2xl text-slate-800">
+                {t("otp_modal_title")}
+              </h3>
+              <p className="text-slate-500 text-sm mt-2 leading-relaxed">
+                {t("otp_modal_sub")}
+              </p>
+            </div>
+
+            {/* Step: idle — show Send button */}
+            {frenchOTPStep === "idle" && (
+              <div className="space-y-4">
+                <button
+                  onClick={handleFrenchOTPSend}
+                  className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm rounded-xl hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
+                >
+                  {t("otp_send_code")}
+                </button>
+                <button
+                  onClick={() => { setFrenchOTPModalOpen(false); }}
+                  className="w-full py-3 text-sm text-slate-500 hover:text-slate-700 font-semibold transition-colors"
+                >
+                  {t("otp_cancel")}
+                </button>
+              </div>
+            )}
+
+            {/* Step: sending */}
+            {frenchOTPStep === "sending" && (
+              <div className="text-center py-6">
+                <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-slate-600 font-semibold text-sm">{t("otp_sending")}</p>
+              </div>
+            )}
+
+            {/* Step: enter OTP */}
+            {frenchOTPStep === "enter" && (
+              <div className="space-y-4">
+                {frenchOTPMaskedEmail && (
+                  <p className="text-center text-xs text-slate-500">
+                    {t("otp_sent_to")} <span className="font-bold text-slate-700">{frenchOTPMaskedEmail}</span>
+                  </p>
+                )}
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="• • • • • •"
+                  value={frenchOTPValue}
+                  onChange={(e) => setFrenchOTPValue(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  className="w-full text-center text-3xl font-mono font-black tracking-[0.5em] border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl py-4 outline-none transition-all"
+                />
+                {frenchOTPError && (
+                  <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl p-3">
+                    <span className="text-red-500 text-sm">⚠️</span>
+                    <p className="text-red-600 text-xs font-semibold">{frenchOTPError}</p>
+                  </div>
+                )}
+                <button
+                  onClick={handleFrenchOTPVerify}
+                  disabled={frenchOTPValue.length !== 6}
+                  className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm rounded-xl hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t("otp_verify")}
+                </button>
+                <div className="text-center">
+                  <button onClick={handleFrenchOTPSend} className="text-xs text-blue-600 hover:underline font-semibold">
+                    {t("otp_resend")}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step: verifying */}
+            {frenchOTPStep === "verifying" && (
+              <div className="text-center py-6">
+                <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-slate-600 font-semibold text-sm">{t("otp_verifying")}</p>
+              </div>
+            )}
+
+            {/* Step: success */}
+            {frenchOTPStep === "success" && (
+              <div className="text-center py-6">
+                <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center text-2xl mx-auto mb-4">
+                  ✅
+                </div>
+                <p className="text-emerald-700 font-extrabold text-base">{t("otp_success")}</p>
+                <p className="text-slate-400 text-xs mt-2">Fermeture automatique...</p>
+              </div>
+            )}
+
+            {/* Step: error */}
+            {frenchOTPStep === "error" && (
+              <div className="space-y-4">
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
+                  <p className="text-red-600 font-semibold text-sm">⚠️ {frenchOTPError}</p>
+                </div>
+                <button
+                  onClick={() => setFrenchOTPStep("idle")}
+                  className="w-full py-3 bg-slate-100 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-200 transition-colors"
+                >
+                  Try Again
                 </button>
               </div>
             )}

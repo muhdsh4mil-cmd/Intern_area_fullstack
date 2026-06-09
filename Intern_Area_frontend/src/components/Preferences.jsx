@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useLanguage } from "../i18n/LanguageContext";
+import LoginHistory from "./LoginHistory";
 
 const popularInterests = [
   "Sales",
@@ -27,7 +29,18 @@ const opportunitiesList = [
   "Videography"
 ];
 
-export default function Preferences({ user, setView, onSave }) {
+export default function Preferences({ user, setView, onSave, onLanguageChange }) {
+  const { t, language: currentLanguage } = useLanguage();
+  const [activeTab, setActiveTab] = useState("general");
+
+  const LANGUAGES = [
+    { code: "en", flag: "🇪🇬", name: "English",    native: "English" },
+    { code: "es", flag: "🇪🇸", name: "Spanish",    native: "Español" },
+    { code: "hi", flag: "🇮🇳", name: "Hindi",      native: "हिन्दी" },
+    { code: "pt", flag: "🇧🇷", name: "Portuguese", native: "Português" },
+    { code: "zh", flag: "🇨🇳", name: "Chinese",    native: "中文" },
+    { code: "fr", flag: "🇫🇷", name: "French",     native: "Français", requiresOTP: true },
+  ];
   const [preferences, setPreferences] = useState(() => {
     const saved = localStorage.getItem(`preferences_${user.id}`);
     if (saved) return JSON.parse(saved);
@@ -130,208 +143,295 @@ export default function Preferences({ user, setView, onSave }) {
             </p>
           </div>
 
-          <hr className="border-slate-100" />
-
-          {/* Section 1: Areas of Interest */}
-          <div className="space-y-4">
-            <label className="block text-sm font-bold text-slate-700 font-outfit uppercase tracking-wider">
-              Area(s) of interest
-            </label>
-            
-            {/* Search Input Bar */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                <svg className="h-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                value={searchVal}
-                onChange={(e) => setSearchVal(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleAddInterest(searchVal);
-                  }
-                }}
-                placeholder="Areas you want to work in or learn about"
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-sm text-slate-700 placeholder-slate-400 outline-none focus:bg-white focus:border-primary transition-all shadow-sm"
-              />
-              
-              {/* Autocomplete Suggestion Dropdown */}
-              {searchVal && filteredSuggestions.length > 0 && (
-                <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-50">
-                  {filteredSuggestions.map((item, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleAddInterest(item)}
-                      className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-primary transition-all"
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </div>
+          {/* Tab Navigation */}
+          <div className="flex border-b border-slate-100 pb-0.5 space-x-6">
+            <button
+              onClick={() => setActiveTab("general")}
+              className={`pb-3 text-xs font-bold transition-all relative ${
+                activeTab === "general"
+                  ? "text-primary font-extrabold"
+                  : "text-slate-400 hover:text-slate-600"
+              }`}
+            >
+              <span>🎨 General Preferences</span>
+              {activeTab === "general" && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
               )}
-            </div>
+            </button>
+            <button
+              onClick={() => setActiveTab("security")}
+              className={`pb-3 text-xs font-bold transition-all relative ${
+                activeTab === "security"
+                  ? "text-primary font-extrabold"
+                  : "text-slate-400 hover:text-slate-600"
+              }`}
+            >
+              <span>🛡️ Security & Logs</span>
+              {activeTab === "security" && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
+              )}
+            </button>
+          </div>
 
-            {/* Selected tags */}
-            <div className="flex flex-wrap gap-2 pt-2">
-              {preferences.interests.map((interest, idx) => (
-                <span
-                  key={idx}
-                  className="inline-flex items-center space-x-1.5 bg-primary text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm"
-                >
-                  <span>{interest}</span>
-                  <button
-                    onClick={() => handleRemoveInterest(interest)}
-                    className="hover:bg-white/20 rounded-full p-0.5 transition-colors focus:outline-none"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          {activeTab === "general" ? (
+            <div className="space-y-8">
+              {/* Section 1: Areas of Interest */}
+              <div className="space-y-4">
+                <label className="block text-sm font-bold text-slate-700 font-outfit uppercase tracking-wider">
+                  Area(s) of interest
+                </label>
+                
+                {/* Search Input Bar */}
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <svg className="h-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                  </button>
-                </span>
-              ))}
-              {preferences.interests.length === 0 && (
-                <span className="text-xs text-slate-400 font-medium italic">No interests selected. Add some below!</span>
-              )}
-            </div>
+                  </div>
+                  <input
+                    type="text"
+                    value={searchVal}
+                    onChange={(e) => setSearchVal(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleAddInterest(searchVal);
+                      }
+                    }}
+                    placeholder="Areas you want to work in or learn about"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-sm text-slate-700 placeholder-slate-400 outline-none focus:bg-white focus:border-primary transition-all shadow-sm"
+                  />
+                  
+                  {/* Autocomplete Suggestion Dropdown */}
+                  {searchVal && filteredSuggestions.length > 0 && (
+                    <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-50">
+                      {filteredSuggestions.map((item, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => handleAddInterest(item)}
+                          className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-primary transition-all"
+                        >
+                          {item}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-            {/* Also select helper opportunities */}
-            <div className="pt-4 space-y-3">
-              <span className="block text-xs font-bold text-slate-500">Also select the following to get more opportunities</span>
-              <div className="flex flex-wrap gap-2">
-                {opportunitiesList.map((opp, idx) => {
-                  const isSelected = preferences.interests.includes(opp);
-                  if (isSelected) return null;
-                  return (
-                    <button
+                {/* Selected tags */}
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {preferences.interests.map((interest, idx) => (
+                    <span
                       key={idx}
-                      onClick={() => handleAddInterest(opp)}
-                      className="inline-flex items-center space-x-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-full px-3.5 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-all select-none"
-                    >
-                      <span>{opp}</span>
-                      <span className="text-slate-400 font-normal">+</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Popular Interests Lists */}
-            <div className="pt-4 space-y-3">
-              <span className="block text-xs font-bold text-slate-500">Popular career interests</span>
-              <div className="flex flex-wrap gap-2">
-                {popularInterests.map((interest, idx) => {
-                  const isSelected = preferences.interests.includes(interest);
-                  if (isSelected) return null;
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => handleAddInterest(interest)}
-                      className="inline-flex items-center space-x-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-full px-3.5 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-all select-none"
+                      className="inline-flex items-center space-x-1.5 bg-primary text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm"
                     >
                       <span>{interest}</span>
-                      <span className="text-slate-400 font-normal">+</span>
-                    </button>
-                  );
-                })}
+                      <button
+                        onClick={() => handleRemoveInterest(interest)}
+                        className="hover:bg-white/20 rounded-full p-0.5 transition-colors focus:outline-none"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  ))}
+                  {preferences.interests.length === 0 && (
+                    <span className="text-xs text-slate-400 font-medium italic">No interests selected. Add some below!</span>
+                  )}
+                </div>
+
+                {/* Also select helper opportunities */}
+                <div className="pt-4 space-y-3">
+                  <span className="block text-xs font-bold text-slate-500">Also select the following to get more opportunities</span>
+                  <div className="flex flex-wrap gap-2">
+                    {opportunitiesList.map((opp, idx) => {
+                      const isSelected = preferences.interests.includes(opp);
+                      if (isSelected) return null;
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => handleAddInterest(opp)}
+                          className="inline-flex items-center space-x-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-full px-3.5 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-all select-none"
+                        >
+                          <span>{opp}</span>
+                          <span className="text-slate-400 font-normal">+</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Popular Interests Lists */}
+                <div className="pt-4 space-y-3">
+                  <span className="block text-xs font-bold text-slate-500">Popular career interests</span>
+                  <div className="flex flex-wrap gap-2">
+                    {popularInterests.map((interest, idx) => {
+                      const isSelected = preferences.interests.includes(interest);
+                      if (isSelected) return null;
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => handleAddInterest(interest)}
+                          className="inline-flex items-center space-x-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-full px-3.5 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-all select-none"
+                        >
+                          <span>{interest}</span>
+                          <span className="text-slate-400 font-normal">+</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <hr className="border-slate-100" />
+
+              {/* Section 2: Currently Looking For */}
+              <div className="space-y-3">
+                <label className="block text-sm font-bold text-slate-700 font-outfit uppercase tracking-wider">
+                  Currently looking for
+                </label>
+                <div className="flex gap-3">
+                  {["Jobs", "Internships"].map((type) => {
+                    const isActive = preferences.lookingFor.includes(type);
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => toggleLookingFor(type)}
+                        className={`inline-flex items-center space-x-1.5 border rounded-full px-4 py-2 text-xs font-bold transition-all shadow-sm ${
+                          isActive
+                            ? "bg-primary border-primary text-white"
+                            : "bg-white hover:bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-800"
+                        }`}
+                      >
+                        <span>{type}</span>
+                        {isActive ? (
+                          <span className="hover:bg-white/20 rounded-full p-0.5 transition-colors">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 font-normal">+</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <hr className="border-slate-100" />
+
+              {/* Section 3: Work Mode */}
+              <div className="space-y-3">
+                <label className="block text-sm font-bold text-slate-700 font-outfit uppercase tracking-wider">
+                  Work mode
+                </label>
+                <div className="flex gap-3">
+                  {[
+                    { label: "In-office", value: "In-office" },
+                    { label: "Work from home", value: "Work from home" }
+                  ].map((mode) => {
+                    const isActive = preferences.workModes.includes(mode.value);
+                    return (
+                      <button
+                        key={mode.value}
+                        onClick={() => toggleWorkMode(mode.value)}
+                        className={`inline-flex items-center space-x-1.5 border rounded-full px-4 py-2 text-xs font-bold transition-all shadow-sm ${
+                          isActive
+                            ? "bg-primary border-primary text-white"
+                            : "bg-white hover:bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-800"
+                        }`}
+                      >
+                        <span>{mode.label}</span>
+                        {isActive ? (
+                          <span className="hover:bg-white/20 rounded-full p-0.5 transition-colors">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 font-normal">+</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <hr className="border-slate-100" />
+
+              {/* Section 4: Language & Region */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 font-outfit uppercase tracking-wider mb-1">
+                    {t("pref_language_title")}
+                  </label>
+                  <p className="text-xs text-slate-400">{t("pref_language_sub")}</p>
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                  {LANGUAGES.map((lang) => {
+                    const isActive = currentLanguage === lang.code;
+                    return (
+                      <button
+                        key={lang.code}
+                        onClick={() => onLanguageChange && onLanguageChange(lang.code)}
+                        className={`relative flex flex-col items-center py-3 px-2 rounded-2xl border-2 text-center transition-all duration-200 hover:shadow-md ${
+                          isActive
+                            ? "bg-primary/5 border-primary text-primary shadow-sm"
+                            : "bg-white border-slate-200 text-slate-600 hover:border-primary/30 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span className="text-2xl mb-1.5">{lang.flag}</span>
+                        <span className="text-[11px] font-extrabold leading-tight">{lang.native}</span>
+                        <span className="text-[9px] text-slate-400 mt-0.5">{lang.name}</span>
+                        {lang.requiresOTP && !isActive && (
+                          <span
+                            className="absolute top-1.5 right-1.5 text-amber-500 text-[10px]"
+                            title={t("lang_french_locked")}
+                          >
+                            🔒
+                          </span>
+                        )}
+                        {isActive && (
+                          <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {currentLanguage === "fr" && (
+                  <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
+                    <span>🇫🇷</span>
+                    <span>Langue française activée — French language is currently active.</span>
+                  </div>
+                )}
+              </div>
+
+              <hr className="border-slate-100" />
+
+              {/* Save Action */}
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setView("dashboard")}
+                  className="px-6 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-xl hover:bg-slate-50 transition-all"
+                >
+                  {t("general_cancel")}
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="px-8 py-2.5 text-xs font-bold text-white bg-primary hover:bg-primary-dark rounded-xl shadow-md hover:shadow-lg transition-all"
+                >
+                  {t("pref_save")}
+                </button>
               </div>
             </div>
-          </div>
-
-          <hr className="border-slate-100" />
-
-          {/* Section 2: Currently Looking For */}
-          <div className="space-y-3">
-            <label className="block text-sm font-bold text-slate-700 font-outfit uppercase tracking-wider">
-              Currently looking for
-            </label>
-            <div className="flex gap-3">
-              {["Jobs", "Internships"].map((type) => {
-                const isActive = preferences.lookingFor.includes(type);
-                return (
-                  <button
-                    key={type}
-                    onClick={() => toggleLookingFor(type)}
-                    className={`inline-flex items-center space-x-1.5 border rounded-full px-4 py-2 text-xs font-bold transition-all shadow-sm ${
-                      isActive
-                        ? "bg-primary border-primary text-white"
-                        : "bg-white hover:bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-800"
-                    }`}
-                  >
-                    <span>{type}</span>
-                    {isActive ? (
-                      <span className="hover:bg-white/20 rounded-full p-0.5 transition-colors">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </span>
-                    ) : (
-                      <span className="text-slate-400 font-normal">+</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <hr className="border-slate-100" />
-
-          {/* Section 3: Work Mode */}
-          <div className="space-y-3">
-            <label className="block text-sm font-bold text-slate-700 font-outfit uppercase tracking-wider">
-              Work mode
-            </label>
-            <div className="flex gap-3">
-              {[
-                { label: "In-office", value: "In-office" },
-                { label: "Work from home", value: "Work from home" }
-              ].map((mode) => {
-                const isActive = preferences.workModes.includes(mode.value);
-                return (
-                  <button
-                    key={mode.value}
-                    onClick={() => toggleWorkMode(mode.value)}
-                    className={`inline-flex items-center space-x-1.5 border rounded-full px-4 py-2 text-xs font-bold transition-all shadow-sm ${
-                      isActive
-                        ? "bg-primary border-primary text-white"
-                        : "bg-white hover:bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-800"
-                    }`}
-                  >
-                    <span>{mode.label}</span>
-                    {isActive ? (
-                      <span className="hover:bg-white/20 rounded-full p-0.5 transition-colors">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </span>
-                    ) : (
-                      <span className="text-slate-400 font-normal">+</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <hr className="border-slate-100" />
-
-          {/* Save Action */}
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              onClick={() => setView("dashboard")}
-              className="px-6 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-xl hover:bg-slate-50 transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              className="px-8 py-2.5 text-xs font-bold text-white bg-primary hover:bg-primary-dark rounded-xl shadow-md hover:shadow-lg transition-all"
-            >
-              Save Preferences
-            </button>
-          </div>
+          ) : (
+            <LoginHistory />
+          )}
 
         </div>
 

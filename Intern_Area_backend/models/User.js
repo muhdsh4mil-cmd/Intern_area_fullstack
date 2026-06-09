@@ -85,6 +85,100 @@ const userSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
     },
+    // ─── Subscription Fields ────────────────────────────────────────────────────
+    subscriptionPlan: {
+      type: String,
+      enum: ["free", "bronze", "silver", "gold"],
+      default: "free",
+    },
+    subscriptionStatus: {
+      type: String,
+      enum: ["active", "expired", "cancelled"],
+      default: "active",
+    },
+    planExpiresAt: {
+      type: Date,
+      default: null,
+    },
+    monthlyApplicationsUsed: {
+      type: Number,
+      default: 0,
+    },
+    applicationsResetMonth: {
+      type: Number, // 1–12
+      default: () => new Date().getMonth() + 1,
+    },
+    razorpayCustomerId: {
+      type: String,
+      default: null,
+    },
+    // ─── Premium Resume Fields ───────────────────────────────────────────────────
+    profileResumeData: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    pendingResumeData: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    resumeOTP: {
+      type: String,
+      default: null,
+    },
+    resumeOTPExpires: {
+      type: Date,
+      default: null,
+    },
+    isResumeOTPVerified: {
+      type: Boolean,
+      default: false,
+    },
+    // ─── Language Preference Fields ──────────────────────────────────────────────
+    preferredLanguage: {
+      type: String,
+      enum: ["en", "es", "hi", "pt", "zh", "fr"],
+      default: "en",
+    },
+    langOTP: {
+      type: String,
+      default: null,
+    },
+    langOTPExpires: {
+      type: Date,
+      default: null,
+    },
+    // ─── Password Reset Fields ───────────────────────────────────────────────────
+    passwordResetDate: {
+      type: Date,
+      default: null,
+    },
+    resetPasswordOTP: {
+      type: String,
+      default: null,
+    },
+    resetPasswordOTPExpires: {
+      type: Date,
+      default: null,
+    },
+    // ─── Login Tracking Fields ───────────────────────────────────────────────────
+    loginHistory: [
+      {
+        timestamp: { type: Date, default: Date.now },
+        ipAddress: { type: String, default: "" },
+        browser: { type: String, default: "" },
+        os: { type: String, default: "" },
+        device: { type: String, enum: ["Desktop", "Laptop", "Tablet", "Mobile"], default: "Desktop" },
+        status: { type: String, enum: ["Successful", "Failed"], default: "Successful" },
+      }
+    ],
+    loginOTP: {
+      type: String,
+      default: null,
+    },
+    loginOTPExpires: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

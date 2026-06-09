@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import { useLanguage } from "../i18n/LanguageContext";
 
 export default function Hero({ user, setView, onGoogleLogin }) {
+  const { t } = useLanguage();
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleGoogleClick = async () => {
@@ -27,22 +29,19 @@ export default function Hero({ user, setView, onGoogleLogin }) {
         {/* Left Column: Headline and Sign-up Card */}
         <div className="lg:col-span-6 flex flex-col space-y-8 animate-fade-in">
           <div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-none mb-3 font-outfit">
-              India's <span className="text-amber-400 glow-yellow font-black border-b-4 border-amber-400/30">#1</span>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-none mb-3 font-outfit">
+              {t("hero_badge")}
             </h1>
-            <p className="text-lg sm:text-xl lg:text-2xl font-light text-slate-200">
-              For fresher jobs & internships
-            </p>
           </div>
 
           {user ? (
             <div className="glass-panel text-slate-800 rounded-2xl p-6 sm:p-8 max-w-md shadow-2xl border border-white/20 transform hover:scale-[1.01] transition-transform duration-300">
               <h3 className="font-outfit font-bold text-slate-500 text-sm tracking-wider uppercase mb-2">
-                Signed in
+                {t("dash_welcome")}
               </h3>
               <p className="font-outfit font-extrabold text-slate-900 text-lg mb-1">Hi, {user.name}</p>
               <p className="text-sm text-slate-600 mb-6">
-                You are already logged in. Head to your space or keep browsing listings.
+                {t("hero_already_logged_in")}
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
@@ -54,21 +53,21 @@ export default function Hero({ user, setView, onGoogleLogin }) {
                     ? "Recruit portal"
                     : user.role === "admin"
                       ? "Admin portal"
-                      : "My dashboard"}
+                      : t("hero_cta_dashboard")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setView?.("jobs")}
                   className="flex-1 text-center py-3 px-4 text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all"
                 >
-                  Browse jobs
+                  {t("hero_explore_jobs")}
                 </button>
               </div>
             </div>
           ) : (
             <div className="glass-panel text-slate-800 rounded-2xl p-6 sm:p-8 max-w-md shadow-2xl border border-white/20 transform hover:scale-[1.01] transition-transform duration-300">
               <h3 className="font-outfit font-bold text-slate-500 text-sm tracking-wider uppercase mb-5">
-                Candidate sign up
+                {t("nav_register")}
               </h3>
 
               <button
@@ -92,15 +91,15 @@ export default function Hero({ user, setView, onGoogleLogin }) {
                       <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
                       <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
                     </svg>
-                    <span>Continue with Google</span>
+                     <span>{t("auth_google")}</span>
                   </>
                 )}
               </button>
 
               <p className="text-[10px] text-slate-400 mt-4 leading-relaxed">
-                By continuing as a candidate, you agree to our{" "}
+                {t("hero_terms")}{" "}
                 <a href="#" className="text-primary hover:underline font-semibold">
-                  Terms & Conditions
+                  {t("hero_terms_link")}
                 </a>
               </p>
             </div>

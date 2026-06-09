@@ -1,6 +1,21 @@
 const asyncHandler = require("express-async-handler");
 const Application = require("../models/Application");
 const Job = require("../models/Job");
+const User = require("../models/User");
+
+// Plan application limits per calendar month
+const PLAN_LIMITS = {
+  free: 1,
+  bronze: 3,
+  silver: 5,
+  gold: Infinity,
+};
+
+const PLAN_UPGRADE_MSG = {
+  free: "Upgrade to Bronze (₹100/mo) for 3 applications, Silver (₹300/mo) for 5, or Gold (₹1000/mo) for unlimited.",
+  bronze: "Upgrade to Silver (₹300/mo) for 5 applications, or Gold (₹1000/mo) for unlimited.",
+  silver: "Upgrade to Gold (₹1000/mo) for unlimited applications.",
+};
 
 // @desc    Submit a job application
 // @route   POST /api/applications
@@ -18,6 +33,36 @@ const applyForJob = asyncHandler(async (req, res) => {
   if (!job) {
     res.status(404);
     throw new Error("Job not found");
+  }
+
+  // ── Subscription / Plan Limit Check ──────────────────────────────────────
+  const candidate = await User.findById(req.user._id);
+  const plan = candidate.subscriptionPlan || "free";
+  const limit = PLAN_LIMITS[plan];
+  const currentMonth = new Date().getMonth() + 1;
+
+  // Auto-expire paid plan if past endDate
+  if (plan !== "free" && candidate.planExpiresAt && new Date() > candidate.planExpiresAt) {
+    candidate.subscriptionPlan = "free";
+    candidate.subscriptionStatus = "expired";
+    candidate.planExpiresAt = null;
+    await candidate.save({ validateBeforeSave: false });
+  }
+
+  // Reset monthly counter when month changes
+  if (candidate.applicationsResetMonth !== currentMonth) {
+    candidate.monthlyApplicationsUsed = 0;
+    candidate.applicationsResetMonth = currentMonth;
+    await candidate.save({ validateBeforeSave: false });
+  }
+
+  if (limit !== Infinity && candidate.monthlyApplicationsUsed >= limit) {
+    res.status(403);
+    throw new Error(
+      `You have reached your ${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan limit of ${limit} application(s) this month. ${
+        PLAN_UPGRADE_MSG[plan] || ""
+      }`
+    );
   }
 
   // Check if already applied
@@ -42,6 +87,11 @@ const applyForJob = asyncHandler(async (req, res) => {
 
   // Increment job applications count
   await Job.findByIdAndUpdate(jobId, { $inc: { applicationsCount: 1 } });
+
+  // Increment user's monthly usage
+  await User.findByIdAndUpdate(req.user._id, {
+    $inc: { monthlyApplicationsUsed: 1 },
+  });
 
   await application.populate("job", "title company location");
   await application.populate("candidate", "name email");
