@@ -757,6 +757,37 @@ export default function EditResume({ user, setView, onSave, returnToApplyAfterRe
     );
   }
 
+  // Premium Access Lock Check
+  if (!profileLoading && freshUser && (!freshUser.subscriptionPlan || freshUser.subscriptionPlan === "free")) {
+    return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-12 text-center animate-fade-in bg-slate-50">
+        <div className="max-w-md bg-white border border-slate-100 rounded-3xl p-8 shadow-xl">
+          <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-6">
+            <span className="text-3xl">👑</span>
+          </div>
+          <h2 className="font-outfit font-black text-2xl text-slate-800 tracking-tight mb-3">Premium Feature</h2>
+          <p className="text-slate-500 text-sm leading-relaxed mb-8">
+            Interactive Resume Builder is only available to premium subscribers. Upgrade your plan now to unlock resume creation, professional PDF downloads, and unlimited applications!
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => setView("pricing")}
+              className="w-full py-3.5 text-sm font-bold text-white bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary rounded-xl shadow-lg shadow-primary/25 transition-all cursor-pointer"
+            >
+              Upgrade to Premium
+            </button>
+            <button
+              onClick={() => setView("dashboard")}
+              className="w-full py-3 text-sm font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+            >
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   // Resolve backend resume path
   const backendBaseUrl = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"

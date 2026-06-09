@@ -282,6 +282,12 @@ const sendResumeOTP = asyncHandler(async (req, res) => {
     throw new Error("User not found.");
   }
 
+  // Ensure user is on a premium plan
+  if (!user.subscriptionPlan || user.subscriptionPlan === "free") {
+    res.status(403);
+    throw new Error("Resume creation is a premium feature. Please upgrade your subscription plan first.");
+  }
+
   // Generate 6-digit OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
@@ -379,6 +385,12 @@ const createResumeOrder = asyncHandler(async (req, res) => {
   if (!user) {
     res.status(404);
     throw new Error("User not found.");
+  }
+
+  // Ensure user is on a premium plan
+  if (!user.subscriptionPlan || user.subscriptionPlan === "free") {
+    res.status(403);
+    throw new Error("Resume creation is a premium feature. Please upgrade your subscription plan first.");
   }
 
   // Ensure OTP was verified first

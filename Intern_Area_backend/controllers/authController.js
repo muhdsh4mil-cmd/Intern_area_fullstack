@@ -439,14 +439,19 @@ const requestPasswordReset = asyncHandler(async (req, res) => {
 
   if (!email) {
     res.status(400);
-    throw new Error("Please provide your registered email address.");
+    throw new Error("Please provide your registered email address or phone number.");
   }
 
-  const user = await User.findOne({ email: email.toLowerCase().trim() });
+  const input = email.trim();
+  const query = input.includes("@")
+    ? { email: input.toLowerCase() }
+    : { phone: input };
+
+  const user = await User.findOne(query);
 
   if (!user) {
     res.status(404);
-    throw new Error("No account found with that email address.");
+    throw new Error("No account found with that email address or phone number.");
   }
 
   // Enforce once-per-day OTP request limit
@@ -521,10 +526,15 @@ const verifyOTPAndReset = asyncHandler(async (req, res) => {
 
   if (!email || !otp) {
     res.status(400);
-    throw new Error("Email and verification code are required.");
+    throw new Error("Email or phone number and verification code are required.");
   }
 
-  const user = await User.findOne({ email: email.toLowerCase().trim() });
+  const input = email.trim();
+  const query = input.includes("@")
+    ? { email: input.toLowerCase() }
+    : { phone: input };
+
+  const user = await User.findOne(query);
 
   if (!user || !user.resetPasswordOTP || !user.resetPasswordOTPExpires) {
     res.status(400);

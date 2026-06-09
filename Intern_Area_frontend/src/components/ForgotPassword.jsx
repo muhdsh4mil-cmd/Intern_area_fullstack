@@ -192,7 +192,7 @@ export default function ForgotPassword({ setView, onOpenModal }) {
           {step === 1 && (
             <>
               <h1 className="font-outfit font-extrabold text-2xl text-white tracking-tight">Forgot Password?</h1>
-              <p className="text-slate-400 text-sm mt-1.5">Enter your email and we'll send a verification code</p>
+              <p className="text-slate-400 text-sm mt-1.5">Enter your registered email or phone number and we'll send a verification code</p>
             </>
           )}
           {step === 2 && (
@@ -248,7 +248,7 @@ export default function ForgotPassword({ setView, onOpenModal }) {
 
               <div>
                 <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 font-outfit">
-                  Registered Email Address
+                  Registered Email or Phone Number
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -257,9 +257,9 @@ export default function ForgotPassword({ setView, onOpenModal }) {
                     </svg>
                   </div>
                   <input
-                    type="email"
+                    type="text"
                     id="forgot-email"
-                    placeholder="name@gmail.com"
+                    placeholder="email or phone number"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-primary/60 focus:bg-white/8 transition-all"
