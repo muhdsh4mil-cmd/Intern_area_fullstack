@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getMe } from "../api/authAPI";
+import { getMe, updateProfile } from "../api/authAPI";
 import {
   sendResumeOTP,
   verifyResumeOTP,
@@ -113,6 +113,24 @@ export default function EditResume({ user, setView, onSave, returnToApplyAfterRe
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
   const [generatedResumeUrl, setGeneratedResumeUrl] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const isPremiumResumeUser = freshUser ? !!freshUser.resumeUrl : false;
+
+  const handleSaveToProfile = async () => {
+    setIsSavingProfile(true);
+    try {
+      const updated = await updateProfile({ profileResumeData: resume });
+      localStorage.setItem("internarea_user", JSON.stringify(updated));
+      setFreshUser(updated);
+      if (addToast) addToast("Resume details successfully saved to your profile!", "success");
+    } catch (err) {
+      console.error(err);
+      if (addToast) addToast(err.response?.data?.message || "Failed to save details to profile.", "error");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   // Mount logic: fetch fresh candidate profile, assert premium subscription
   useEffect(() => {
@@ -757,36 +775,7 @@ export default function EditResume({ user, setView, onSave, returnToApplyAfterRe
     );
   }
 
-  // Premium Access Lock Check
-  if (!profileLoading && freshUser && (!freshUser.subscriptionPlan || freshUser.subscriptionPlan === "free")) {
-    return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-12 text-center animate-fade-in bg-slate-50">
-        <div className="max-w-md bg-white border border-slate-100 rounded-3xl p-8 shadow-xl">
-          <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-6">
-            <span className="text-3xl">👑</span>
-          </div>
-          <h2 className="font-outfit font-black text-2xl text-slate-800 tracking-tight mb-3">Premium Feature</h2>
-          <p className="text-slate-500 text-sm leading-relaxed mb-8">
-            Interactive Resume Builder is only available to premium subscribers. Upgrade your plan now to unlock resume creation, professional PDF downloads, and unlimited applications!
-          </p>
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={() => setView("pricing")}
-              className="w-full py-3.5 text-sm font-bold text-white bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary rounded-xl shadow-lg shadow-primary/25 transition-all cursor-pointer"
-            >
-              Upgrade to Premium
-            </button>
-            <button
-              onClick={() => setView("dashboard")}
-              className="w-full py-3 text-sm font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
-            >
-              Back to Dashboard
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+
 
 
   // Resolve backend resume path
@@ -816,26 +805,44 @@ export default function EditResume({ user, setView, onSave, returnToApplyAfterRe
           >
             {returnToApplyAfterResume ? "← Back to application" : "← Back to Dashboard"}
           </button>
-          <h1 className="font-outfit font-black text-2xl text-slate-800 tracking-tight">Interactive Resume Builder</h1>
+          <h1 className="font-outfit font-black text-2xl text-slate-800 tracking-tight">
+            {isPremiumResumeUser ? "Interactive Resume Builder" : "Resume Builder (Beginner)"}
+          </h1>
         </div>
         <div className="flex flex-wrap gap-2.5 w-full sm:w-auto">
+          <button
+            onClick={handleSaveToProfile}
+            disabled={isSavingProfile}
+            className="flex-1 sm:flex-none px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+          >
+            {isSavingProfile ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save to Profile"
+            )}
+          </button>
           <button
             onClick={handleLocalSave}
             className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
           >
             Save Draft
           </button>
-          <button
-            onClick={handlePrint}
-            className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
-          >
-            🖨️ Local Print
-          </button>
+          {isPremiumResumeUser && (
+            <button
+              onClick={handlePrint}
+              className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              🖨️ Local Print
+            </button>
+          )}
           <button
             onClick={handleInitiateVerification}
             className="flex-1 sm:flex-none px-5 py-2.5 bg-primary hover:bg-primary-dark text-white font-extrabold rounded-xl text-xs shadow-md hover:shadow-lg transition-all cursor-pointer"
           >
-            Generate Premium Resume (₹50)
+            {isPremiumResumeUser ? "Regenerate Resume (₹50)" : "Unlock Premium Builder (₹50)"}
           </button>
         </div>
       </div>
@@ -1440,11 +1447,19 @@ export default function EditResume({ user, setView, onSave, returnToApplyAfterRe
           </div>
 
           {/* RIGHT COLUMN: Real-Time Preview (A4 Simulation) */}
-          <div className={`lg:col-span-5 lg:sticky lg:top-[148px] bg-white border border-slate-200 rounded-2xl shadow-md p-4 sm:p-8 min-h-[75vh] flex flex-col overflow-y-auto scrollbar-thin ${
+          <div className={`lg:col-span-5 lg:sticky lg:top-[148px] bg-white border border-slate-200 rounded-2xl shadow-md p-4 sm:p-8 min-h-[75vh] flex flex-col overflow-y-auto scrollbar-thin relative ${
             activeMobileTab === "preview" ? "flex" : "hidden lg:flex"
           }`}>
             
-            <div className="flex-1 space-y-3.5 print:space-y-2.5" id="resume-print-area">
+            <div 
+              className="flex-1 space-y-3.5 print:space-y-2.5" 
+              id="resume-print-area"
+              style={{
+                filter: isPremiumResumeUser ? "none" : "blur(4px)",
+                pointerEvents: isPremiumResumeUser ? "auto" : "none",
+                userSelect: isPremiumResumeUser ? "none" : "auto"
+              }}
+            >
               
               {/* Profile Photo & Info Header */}
               <div className="flex justify-between items-start border-b-2 border-slate-800 pb-3">
@@ -1630,9 +1645,40 @@ export default function EditResume({ user, setView, onSave, returnToApplyAfterRe
 
             </div>
 
-            <div className="text-center pt-6 border-t border-slate-100 text-[10px] font-semibold text-slate-400 tracking-wider uppercase mt-auto print:hidden select-none">
-              📄 Interactive Real-Time Preview
-            </div>
+            {/* Premium Blurred Glass Paywall Overlay */}
+            {!isPremiumResumeUser && (
+              <div className="absolute inset-0 bg-slate-900/5 backdrop-blur-[1.5px] rounded-2xl flex items-center justify-center p-6 z-10 select-none">
+                <div className="max-w-xs bg-white/95 backdrop-blur-md border border-slate-100 rounded-3xl p-6 shadow-2xl space-y-5 animate-scale-up text-center">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 text-white flex items-center justify-center text-2xl mx-auto shadow-md shadow-orange-100 animate-bounce">
+                    👑
+                  </div>
+                  <div>
+                    <span className="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-amber-200">
+                      Premium Builder
+                    </span>
+                    <h3 className="font-outfit font-black text-lg text-slate-800 mt-3 tracking-tight">Interactive A4 Preview</h3>
+                    <p className="text-slate-500 text-[11px] mt-2 leading-relaxed">
+                      Upgrade to unlock the real-time A4 simulation preview, instant local printing, and download your professionally compiled PDF resume.
+                    </p>
+                  </div>
+                  <div className="pt-1">
+                    <button
+                      onClick={handleInitiateVerification}
+                      className="w-full py-3 px-4 text-xs font-bold text-white bg-gradient-to-r from-primary to-primary-light hover:from-primary-dark hover:to-primary rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 font-outfit uppercase tracking-wider"
+                    >
+                      🚀 Unlock Premium (₹50)
+                    </button>
+                    <p className="text-[9px] text-slate-400 mt-2 font-medium">One-Time Payment · Permanent Unlock</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {isPremiumResumeUser && (
+              <div className="text-center pt-6 border-t border-slate-100 text-[10px] font-semibold text-slate-400 tracking-wider uppercase mt-auto print:hidden select-none">
+                📄 Interactive Real-Time Preview
+              </div>
+            )}
           </div>
 
         </div>

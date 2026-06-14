@@ -361,53 +361,55 @@ export default function Navbar({
               )}
             </div>
 
-            {/* 🌐 Language Switcher (Always Available for guests and logged-in users) */}
-            <div className="relative shrink-0" ref={langDropdownRef}>
-              <button
-                onClick={() => setLangDropdownOpen(!langDropdownOpen)}
-                className="p-2 text-slate-500 hover:text-primary hover:bg-primary/5 rounded-full transition-colors relative flex items-center justify-center cursor-pointer"
-                title={t("nav_language")}
-              >
-                <span className="text-base leading-none">{LANGUAGES.find(l => l.code === currentLanguage)?.flag || "🇪🇬"}</span>
-              </button>
+            {/* 🌐 Language Switcher (Only visible when user is logged in) */}
+            {user && (
+              <div className="relative shrink-0" ref={langDropdownRef}>
+                <button
+                  onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+                  className="p-2 text-slate-500 hover:text-primary hover:bg-primary/5 rounded-full transition-colors relative flex items-center justify-center cursor-pointer"
+                  title={t("nav_language")}
+                >
+                  <span className="text-base leading-none">{LANGUAGES.find(l => l.code === currentLanguage)?.flag || "🇪🇬"}</span>
+                </button>
 
-              {langDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 animate-fade-in">
-                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider px-3 py-1.5">{t("lang_select_title")}</p>
-                  {LANGUAGES.map((lang) => {
-                    const isActive = currentLanguage === lang.code;
-                    return (
-                      <button
-                        key={lang.code}
-                        onClick={() => {
-                          setLangDropdownOpen(false);
-                          onLanguageChange && onLanguageChange(lang.code);
-                        }}
-                        className={`w-full text-left px-3 py-2 rounded-xl flex items-center gap-3 transition-all duration-150 cursor-pointer ${
-                          isActive
-                            ? "bg-primary/8 text-primary"
-                            : "text-slate-600 hover:bg-slate-50"
-                        }`}
-                      >
-                        <span className="text-lg shrink-0">{lang.flag}</span>
-                        <span className="flex-1">
-                          <span className="block text-xs font-bold">{lang.native}</span>
-                          <span className="block text-[10px] text-slate-400">{lang.name}</span>
-                        </span>
-                        {lang.requiresOTP && !isActive && (
-                          <span className="text-amber-500 text-xs" title={t("lang_french_locked")}>🔒</span>
-                        )}
-                        {isActive && (
-                          <svg className="w-4 h-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                {langDropdownOpen && (
+                  <div className="absolute -right-16 sm:right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 animate-fade-in">
+                    <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider px-3 py-1.5">{t("lang_select_title")}</p>
+                    {LANGUAGES.map((lang) => {
+                      const isActive = currentLanguage === lang.code;
+                      return (
+                        <button
+                          key={lang.code}
+                          onClick={() => {
+                            setLangDropdownOpen(false);
+                            onLanguageChange && onLanguageChange(lang.code);
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-xl flex items-center gap-3 transition-all duration-150 cursor-pointer ${
+                            isActive
+                              ? "bg-primary/8 text-primary"
+                              : "text-slate-600 hover:bg-slate-50"
+                          }`}
+                        >
+                          <span className="text-lg shrink-0">{lang.flag}</span>
+                          <span className="flex-1">
+                            <span className="block text-xs font-bold">{lang.native}</span>
+                            <span className="block text-[10px] text-slate-400">{lang.name}</span>
+                          </span>
+                          {lang.requiresOTP && !isActive && (
+                            <span className="text-amber-500 text-xs" title={t("lang_french_locked")}>🔒</span>
+                          )}
+                          {isActive && (
+                            <svg className="w-4 h-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Auth / Dynamic Dashboard Buttons */}
             {user ? (

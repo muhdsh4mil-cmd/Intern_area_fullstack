@@ -102,7 +102,7 @@ export default function MessagesDropdown({ user, setView, onOpenConversation }) 
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 mt-2 w-[320px] sm:w-[360px] bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden animate-fade-in">
+        <div className="absolute -right-28 sm:right-0 mt-2 w-[85vw] max-w-[320px] sm:w-[360px] bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden animate-fade-in">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/60">
             <div className="flex items-center gap-2">

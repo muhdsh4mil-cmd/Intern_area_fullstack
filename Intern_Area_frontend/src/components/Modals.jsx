@@ -247,8 +247,10 @@ export default function Modals({
         customMeta = await readCustomResumeFile(uploadedFile);
       }
 
-      onSubmitApply(`${textDetails}\n${fileDetails}`, customMeta);
+      await onSubmitApply(`${textDetails}\n${fileDetails}`, customMeta);
       setApplyStep(2);
+    } catch (error) {
+      console.error("Application submission failed:", error);
     } finally {
       setApplySubmitting(false);
     }

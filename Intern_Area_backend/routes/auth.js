@@ -12,6 +12,8 @@ const {
   verifyLoginOTP,
   getLoginHistory,
   getAllLoginHistory,
+  deleteLoginEntry,
+  clearAllLoginHistory,
 } = require("../controllers/authController");
 const { protect, authorizeRoles } = require("../middleware/auth");
 
@@ -26,5 +28,7 @@ router.put("/profile", protect, updateProfile);
 router.post("/logout", protect, logoutUser);
 router.get("/login-history", protect, getLoginHistory);
 router.get("/all-login-history", protect, authorizeRoles("admin"), getAllLoginHistory);
+router.delete("/all-login-history", protect, authorizeRoles("admin"), clearAllLoginHistory);
+router.delete("/login-history/:userId/:entryId", protect, authorizeRoles("admin"), deleteLoginEntry);
 
 module.exports = router;

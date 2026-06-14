@@ -3,7 +3,7 @@ import { mockJobs as seedJobs } from "../data/mockData";
 import AdminResumeViewer from "./AdminResumeViewer";
 import { SUPERHERO_AVATARS } from "../data/avatars";
 import { fetchUsers, updateUserRole, deleteUser } from "../api/adminAPI";
-import { getAllLoginHistory } from "../api/authAPI";
+import { getAllLoginHistory, deleteLoginEntry, clearAllLoginHistory } from "../api/authAPI";
 
 const LOGO_GRADIENTS = [
   "from-blue-600 to-indigo-700",
@@ -74,6 +74,30 @@ export default function AdminDash({
       setAuditError("Failed to fetch login audit logs. Please make sure the backend is active.");
     } finally {
       setAuditLoading(false);
+    }
+  };
+
+  const handleDeleteAuditEntry = async (userId, entryId) => {
+    if (!window.confirm("Delete this login record? This action cannot be undone.")) return;
+    try {
+      await deleteLoginEntry(userId, entryId);
+      setAuditLogs((prev) => prev.filter((log) => log._id !== entryId));
+      triggerFeedback("Login record deleted successfully.", "success");
+    } catch (err) {
+      console.error("Error deleting audit log entry:", err);
+      triggerFeedback(err.response?.data?.message || "Failed to delete the log entry.", "error");
+    }
+  };
+
+  const handleClearAllAuditLogs = async () => {
+    if (!window.confirm("⚠️ This will permanently delete ALL login audit records for every user. This action cannot be undone. Continue?")) return;
+    try {
+      await clearAllLoginHistory();
+      setAuditLogs([]);
+      triggerFeedback("All login audit logs have been cleared.", "success");
+    } catch (err) {
+      console.error("Error clearing audit logs:", err);
+      triggerFeedback(err.response?.data?.message || "Failed to clear audit logs.", "error");
     }
   };
 
@@ -208,14 +232,25 @@ export default function AdminDash({
   const [internSkillsStr, setInternSkillsStr] = useState("");
   const [internDescription, setInternDescription] = useState("");
 
-  const resolveJob = (jobId) =>
-    jobList.find((j) => j.id === jobId) || {
+  const resolveJob = (app) => {
+    if (app && app.job && typeof app.job === "object") {
+      return {
+        title: app.job.title || "Listing removed or custom",
+        company: app.job.company || "—",
+        location: app.job.location || "—",
+        stipend: app.job.salary || app.job.stipend || "—",
+        type: app.job.type || "—",
+      };
+    }
+    const jobId = app?.jobId || app?.job;
+    return jobList.find((j) => j.id === jobId || j._id === jobId) || {
       title: "Listing removed or custom",
       company: "—",
       location: "—",
       stipend: "—",
       type: "—",
     };
+  };
 
   const stats = useMemo(() => {
     const total = applications.length;
@@ -334,10 +369,10 @@ export default function AdminDash({
       </div>
 
       {/* Tabs Menu */}
-      <div className="flex border-b border-slate-200 mb-8 gap-6 overflow-x-auto scrollbar-none">
+      <div className="flex border-b border-slate-200 mb-8 gap-6 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveTab("applications")}
-          className={`pb-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+          className={`pb-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === "applications"
               ? "border-primary text-primary"
               : "border-transparent text-slate-400 hover:text-slate-600"
@@ -347,7 +382,7 @@ export default function AdminDash({
         </button>
         <button
           onClick={() => setActiveTab("users")}
-          className={`pb-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+          className={`pb-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === "users"
               ? "border-primary text-primary"
               : "border-transparent text-slate-400 hover:text-slate-600"
@@ -357,7 +392,7 @@ export default function AdminDash({
         </button>
         <button
           onClick={() => setActiveTab("post-job")}
-          className={`pb-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+          className={`pb-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === "post-job"
               ? "border-primary text-primary"
               : "border-transparent text-slate-400 hover:text-slate-600"
@@ -367,7 +402,7 @@ export default function AdminDash({
         </button>
         <button
           onClick={() => setActiveTab("post-internship")}
-          className={`pb-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+          className={`pb-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === "post-internship"
               ? "border-primary text-primary"
               : "border-transparent text-slate-400 hover:text-slate-600"
@@ -377,7 +412,7 @@ export default function AdminDash({
         </button>
         <button
           onClick={() => setActiveTab("login-audit")}
-          className={`pb-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+          className={`pb-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === "login-audit"
               ? "border-primary text-primary"
               : "border-transparent text-slate-400 hover:text-slate-600"
@@ -425,7 +460,7 @@ export default function AdminDash({
                 {applications.length > 0 ? (
                   <div className="divide-y divide-slate-50">
                     {applications.map((app) => {
-                      const job = resolveJob(app.jobId);
+                      const job = resolveJob(app);
                       const active = selectedApp?.id === app.id;
                       return (
                         <div
@@ -478,7 +513,7 @@ export default function AdminDash({
                   </h3>
 
                   {(() => {
-                    const job = resolveJob(selectedApp.jobId);
+                    const job = resolveJob(selectedApp);
                     return (
                       <>
                         <div>
@@ -1273,15 +1308,27 @@ export default function AdminDash({
                 Review platform authentication attempts across all accounts and environments.
               </p>
             </div>
-            <button
-              onClick={loadAuditLogs}
-              disabled={auditLoading}
-              className="p-2 text-slate-500 hover:text-primary rounded-xl hover:bg-slate-50 border border-slate-200 shadow-sm transition-all"
-            >
-              <svg className={`w-4 h-4 ${auditLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-2">
+              {auditLogs.length > 0 && (
+                <button
+                  onClick={handleClearAllAuditLogs}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl cursor-pointer transition-all"
+                  title="Clear all login history records"
+                >
+                  🗑️ Clear All Logs
+                </button>
+              )}
+              <button
+                onClick={loadAuditLogs}
+                disabled={auditLoading}
+                className="p-2 text-slate-500 hover:text-primary rounded-xl hover:bg-slate-50 border border-slate-200 shadow-sm transition-all"
+                title="Refresh audit logs"
+              >
+                <svg className={`w-4 h-4 ${auditLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* Filters Bar */}
@@ -1351,6 +1398,7 @@ export default function AdminDash({
                       <th className="py-3 px-4">Device</th>
                       <th className="py-3 px-4">Browser & OS</th>
                       <th className="py-3 px-4">IP Address</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 font-medium text-slate-700">
@@ -1400,6 +1448,18 @@ export default function AdminDash({
                           </td>
                           <td className="py-3.5 px-4 font-mono text-[11px] text-slate-400 font-normal">
                             {item.ipAddress}
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteAuditEntry(item.user?._id, item._id)}
+                              className="p-1.5 rounded-lg border border-rose-100 hover:border-rose-300 bg-rose-50/40 hover:bg-rose-50 text-rose-400 hover:text-rose-600 transition-all cursor-pointer"
+                              title="Delete this log entry"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -1455,6 +1515,18 @@ export default function AdminDash({
                         <span>
                           {item.browser} on {item.os}
                         </span>
+                      </div>
+                      <div className="pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteAuditEntry(item.user?._id, item._id)}
+                          className="w-full flex items-center justify-center gap-1.5 py-2 text-[10px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-100 rounded-xl cursor-pointer transition-all"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete Record
+                        </button>
                       </div>
                     </div>
                   ))}

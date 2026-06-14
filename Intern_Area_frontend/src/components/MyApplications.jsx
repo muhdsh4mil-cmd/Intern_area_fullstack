@@ -14,8 +14,19 @@ export default function MyApplications({ user, applications, setView }) {
   };
 
   // Helper to find job details
-  const getJobDetails = (jobId) => {
-    const job = mockJobs.find((j) => j.id === jobId);
+  const getJobDetails = (app) => {
+    if (app && app.job && typeof app.job === "object") {
+      return {
+        title: app.job.title || "Custom Applied Role",
+        company: app.job.company || "Company Listed",
+        type: app.job.type || "Job/Internship",
+        stipend: app.job.salary || app.job.stipend || "Not Specified",
+        location: app.job.location || "Remote/In-office",
+        isRemote: app.job.isRemote || app.job.location?.toLowerCase().includes("remote") || false,
+      };
+    }
+    const jobId = app?.jobId || app?.job;
+    const job = mockJobs.find((j) => j.id === jobId || j._id === jobId);
     if (job) return job;
     
     // Check if the user added it dynamically
@@ -94,7 +105,7 @@ export default function MyApplications({ user, applications, setView }) {
         {/* Applications List */}
         <div className="space-y-4">
           {myApps.map((app) => {
-            const job = getJobDetails(app.jobId);
+            const job = getJobDetails(app);
             const isExpanded = expandedAppId === app.id;
             
             return (

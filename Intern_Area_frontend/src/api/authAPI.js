@@ -68,6 +68,18 @@ export const getAllLoginHistory = async () => {
   return data;
 };
 
+// Delete a single login audit log entry (Admin only)
+export const deleteLoginEntry = async (userId, entryId) => {
+  const { data } = await axiosInstance.delete(`/auth/login-history/${userId}/${entryId}`);
+  return data;
+};
+
+// Clear ALL login history entries across all users (Admin only)
+export const clearAllLoginHistory = async () => {
+  const { data } = await axiosInstance.delete("/auth/all-login-history");
+  return data;
+};
+
 // Heuristic to get browser, OS, and device info
 export const getBrowserInfo = () => {
   const ua = navigator.userAgent;

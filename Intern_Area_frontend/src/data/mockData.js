@@ -1,6 +1,6 @@
 export const mockJobs = [
   {
-    id: "job-1",
+    id: "65f1a2c3d4e5f60011223301",
     title: "React Frontend Developer Intern",
     company: "Amazon",
     logoColor: "from-amber-400 to-amber-600",
@@ -28,7 +28,7 @@ export const mockJobs = [
     ]
   },
   {
-    id: "job-2",
+    id: "65f1a2c3d4e5f60011223302",
     title: "Web Development Intern",
     company: "HCL Technologies",
     logoColor: "from-blue-500 to-blue-700",
@@ -56,7 +56,7 @@ export const mockJobs = [
     ]
   },
   {
-    id: "job-3",
+    id: "65f1a2c3d4e5f60011223303",
     title: "Graphic Design & UI Intern",
     company: "Nykaa",
     logoColor: "from-pink-500 to-rose-600",
@@ -84,7 +84,7 @@ export const mockJobs = [
     ]
   },
   {
-    id: "job-4",
+    id: "65f1a2c3d4e5f60011223304",
     title: "Full Stack Software Engineer",
     company: "BookMyShow",
     logoColor: "from-red-500 to-rose-700",
@@ -112,7 +112,7 @@ export const mockJobs = [
     ]
   },
   {
-    id: "job-5",
+    id: "65f1a2c3d4e5f60011223305",
     title: "Digital Marketing Specialist",
     company: "Nestlé",
     logoColor: "from-teal-600 to-cyan-700",
@@ -140,7 +140,7 @@ export const mockJobs = [
     ]
   },
   {
-    id: "job-6",
+    id: "65f1a2c3d4e5f60011223306",
     title: "Operations & Sales Associate",
     company: "Decathlon",
     logoColor: "from-sky-600 to-indigo-700",
@@ -168,7 +168,7 @@ export const mockJobs = [
     ]
   },
   {
-    id: "job-7",
+    id: "65f1a2c3d4e5f60011223307",
     title: "Data Science & Analyst Intern",
     company: "Amazon",
     logoColor: "from-amber-400 to-amber-600",
@@ -196,7 +196,7 @@ export const mockJobs = [
     ]
   },
   {
-    id: "job-8",
+    id: "65f1a2c3d4e5f60011223308",
     title: "Product Management Intern",
     company: "BookMyShow",
     logoColor: "from-red-500 to-rose-700",
@@ -224,7 +224,7 @@ export const mockJobs = [
     ]
   },
   {
-    id: "job-9",
+    id: "65f1a2c3d4e5f60011223309",
     title: "Brand Executive (Beauty)",
     company: "Nykaa",
     logoColor: "from-pink-500 to-rose-600",
@@ -252,7 +252,7 @@ export const mockJobs = [
     ]
   },
   {
-    id: "job-10",
+    id: "65f1a2c3d4e5f6001122330a",
     title: "QA Automation Engineer",
     company: "HCL Technologies",
     logoColor: "from-blue-500 to-blue-700",
@@ -280,7 +280,7 @@ export const mockJobs = [
     ]
   },
   {
-    id: "job-11",
+    id: "65f1a2c3d4e5f6001122330b",
     title: "HR Talent Acquisition Intern",
     company: "Nestlé",
     logoColor: "from-teal-600 to-cyan-700",
@@ -308,7 +308,7 @@ export const mockJobs = [
     ]
   },
   {
-    id: "job-12",
+    id: "65f1a2c3d4e5f6001122330c",
     title: "Web Graphics & Media Intern",
     company: "Decathlon",
     logoColor: "from-sky-600 to-indigo-700",
@@ -336,7 +336,7 @@ export const mockJobs = [
     ]
   },
   {
-    id: "job-13",
+    id: "65f1a2c3d4e5f6001122330d",
     title: "Django Backend Engineer",
     company: "Spotify",
     logoColor: "from-emerald-500 to-green-600",
@@ -363,7 +363,7 @@ export const mockJobs = [
     ]
   },
   {
-    id: "job-14",
+    id: "65f1a2c3d4e5f6001122330e",
     title: "Remote Data Scientist",
     company: "Microsoft",
     logoColor: "from-blue-600 to-indigo-700",
@@ -390,7 +390,7 @@ export const mockJobs = [
     ]
   },
   {
-    id: "job-15",
+    id: "65f1a2c3d4e5f6001122330f",
     title: "Lead Video Producer & Editor",
     company: "Netflix",
     logoColor: "from-red-600 to-rose-800",
@@ -417,7 +417,7 @@ export const mockJobs = [
     ]
   },
   {
-    id: "job-16",
+    id: "65f1a2c3d4e5f60011223310",
     title: "Python & Django Developer Intern",
     company: "Dropbox",
     logoColor: "from-indigo-500 to-blue-600",
@@ -443,7 +443,7 @@ export const mockJobs = [
     ]
   },
   {
-    id: "job-17",
+    id: "65f1a2c3d4e5f60011223311",
     title: "Machine Learning & Data Science Intern",
     company: "Google",
     logoColor: "from-red-500 to-yellow-500",
@@ -469,7 +469,7 @@ export const mockJobs = [
     ]
   },
   {
-    id: "job-18",
+    id: "65f1a2c3d4e5f60011223312",
     title: "Senior Full Stack Web Developer",
     company: "Stripe",
     logoColor: "from-purple-500 to-indigo-600",
@@ -492,6 +492,174 @@ export const mockJobs = [
       "2+ years of professional full-stack web engineering experience.",
       "Exceptional command over React, Node.js, and browser API concepts.",
       "Passionate about writing clean, bulletproof codebase designs."
+    ]
+  },
+  {
+    id: "65f1a2c3d4e5f60011223313",
+    title: "UI/UX Product Designer Intern",
+    company: "Figma",
+    logoColor: "from-purple-500 to-pink-500",
+    type: "Internship",
+    location: "Remote",
+    isRemote: true,
+    duration: "6 Months",
+    stipend: "₹40,000 / month",
+    startDate: "Immediately",
+    postedDate: "Just now",
+    skills: ["Figma", "UI/UX Design", "Wireframing", "User Research", "Prototyping"],
+    openings: 2,
+    description: "Figma is looking for a creative UI/UX Design Intern to join our design systems team. You will work on designing next-generation collaborative features and helping refine our global design tokens.",
+    responsibilities: [
+      "Create high-fidelity mockups, user flows, and interactive prototypes for desktop and mobile.",
+      "Conduct user research and translate qualitative insights into wireframes and product designs.",
+      "Collaborate closely with product managers and frontend engineers to ensure design spec alignment.",
+      "Help maintain and contribute components to our centralized design library."
+    ],
+    requirements: [
+      "Pursuing a degree in Design, Human-Computer Interaction, or a related creative discipline.",
+      "Strong visual portfolio demonstrating web UI layouts, clean typography, and product design process.",
+      "Proficiency in Figma and vector drawing tools.",
+      "Excellent communication skills and eagerness to iterate on designs based on feedback."
+    ]
+  },
+  {
+    id: "65f1a2c3d4e5f60011223314",
+    title: "DevOps Cloud Engineer",
+    company: "Netflix",
+    logoColor: "from-red-600 to-rose-950",
+    type: "Job",
+    location: "Bangalore",
+    isRemote: false,
+    duration: "Full Time",
+    stipend: "₹14,00,000 - ₹18,00,000 / year",
+    startDate: "Immediately",
+    postedDate: "1 day ago",
+    skills: ["AWS", "Kubernetes", "Docker", "Terraform", "CI/CD", "Linux"],
+    openings: 2,
+    description: "Netflix is hiring a DevOps Engineer to manage and scale cloud streaming infrastructure in the South Asia region. You will focus on automating infrastructure provisioning, container deployments, and enhancing pipeline security.",
+    responsibilities: [
+      "Manage and monitor multi-region AWS cloud infrastructures and Kubernetes clusters.",
+      "Develop infrastructure-as-code (IaC) configuration scripts using Terraform.",
+      "Automate deployment pipelines and optimize CI/CD runs using GitHub Actions or Jenkins.",
+      "Enhance containerized application stability and design disaster recovery procedures."
+    ],
+    requirements: [
+      "2+ years of DevOps or Site Reliability Engineering (SRE) experience.",
+      "Deep expertise in Kubernetes orchestration, Docker containers, and AWS environments.",
+      "Strong scripting skills in Bash, Python, or Go.",
+      "Bachelor's degree in Computer Science, Information Technology, or equivalent experience."
+    ]
+  },
+  {
+    id: "65f1a2c3d4e5f60011223315",
+    title: "Content Creator & Copywriter Intern",
+    company: "Zomato",
+    logoColor: "from-red-500 to-rose-600",
+    type: "Internship",
+    location: "Gurugram (Delhi NCR)",
+    isRemote: false,
+    duration: "3 Months",
+    stipend: "₹15,000 / month",
+    startDate: "Immediately",
+    postedDate: "Just now",
+    skills: ["Copywriting", "Social Media", "Creative Writing", "Content Strategy", "SEO"],
+    openings: 4,
+    description: "Zomato's social media and branding team is seeking an enthusiastic Content Creator & Copywriter Intern. You will write witty, highly-shareable copy for push notifications, social media campaigns, and marketing assets.",
+    responsibilities: [
+      "Draft engaging copies for app push notifications, promotional newsletters, and social media posts.",
+      "Collaborate with graphic designers to ideate and execute viral marketing campaign visuals.",
+      "Write SEO-optimized blog posts highlighting local food trends, restaurant reviews, and chef stories.",
+      "Analyze weekly engagement analytics to refine content strategies."
+    ],
+    requirements: [
+      "Pursuing a degree in English Literature, Journalism, Mass Communication, or related marketing fields.",
+      "Excellent copywriting skills with a witty, conversational, and culturally relevant tone.",
+      "Deep understanding of current social media trends, memes, and digital media dynamics.",
+      "Strong portfolio of written samples (blogs, campaigns, or social posts)."
+    ]
+  },
+  {
+    id: "65f1a2c3d4e5f60011223316",
+    title: "Data Engineer",
+    company: "Uber",
+    logoColor: "from-slate-700 to-slate-900",
+    type: "Job",
+    location: "Hyderabad",
+    isRemote: false,
+    duration: "Full Time",
+    stipend: "₹16,00,000 - ₹22,00,000 / year",
+    startDate: "Immediately",
+    postedDate: "2 days ago",
+    skills: ["SQL", "Python", "Apache Spark", "Hadoop", "Data Pipelines", "AWS"],
+    openings: 3,
+    description: "Uber is seeking a Data Engineer to construct, optimize, and scale real-time data pipelines that power routing algorithms, surge pricing models, and driver-passenger pairing systems.",
+    responsibilities: [
+      "Design, implement, and maintain high-throughput ETL data pipelines using PySpark and Kafka.",
+      "Optimize SQL queries and data storage formats for petabyte-scale data lakes.",
+      "Collaborate with data scientists and analytics managers to deliver robust schemas and dashboards.",
+      "Ensure data pipeline integrity and set up monitoring and alerting alerts."
+    ],
+    requirements: [
+      "1-3 years of data engineering or backend analytics experience.",
+      "Outstanding command over Python, SQL, and distributed compute frameworks (Spark).",
+      "Familiarity with cloud data warehousing solutions (Snowflake, AWS Redshift).",
+      "Degree in Computer Science, Applied Mathematics, or a related quantitative field."
+    ]
+  },
+  {
+    id: "65f1a2c3d4e5f60011223317",
+    title: "Cyber Security Intern",
+    company: "Infosys",
+    logoColor: "from-sky-500 to-blue-600",
+    type: "Internship",
+    location: "Pune",
+    isRemote: true,
+    duration: "6 Months",
+    stipend: "₹22,000 / month",
+    startDate: "Immediately",
+    postedDate: "4 days ago",
+    skills: ["Cyber Security", "Penetration Testing", "Linux", "Python", "Network Security"],
+    openings: 2,
+    description: "Infosys Cyber Defense Center is seeking a Cyber Security Intern to help monitor network logs, assist in vulnerability assessments, and write scripts to automate threat intelligence compilation.",
+    responsibilities: [
+      "Assist in periodic penetration testing of internal web applications and APIs.",
+      "Analyze system logs for security events and compile threat intelligence dashboards.",
+      "Write custom Python scripts to automate vulnerability scans and reporting.",
+      "Document security audit outcomes and collaborate with developers to verify fixes."
+    ],
+    requirements: [
+      "Pursuing a degree in Computer Science, Information Security, or an equivalent technical field.",
+      "Solid understanding of network protocols, OWASP Top 10 vulnerabilities, and Linux commands.",
+      "Basic programming skills in Python or Bash scripting.",
+      "Prior certifications (like CEH, Security+) are a strong plus but not mandatory."
+    ]
+  },
+  {
+    id: "65f1a2c3d4e5f60011223318",
+    title: "HR Operations Manager",
+    company: "TCS",
+    logoColor: "from-blue-600 to-indigo-800",
+    type: "Job",
+    location: "Kolkata",
+    isRemote: false,
+    duration: "Full Time",
+    stipend: "₹7,50,000 - ₹10,00,000 / year",
+    startDate: "Immediately",
+    postedDate: "1 week ago",
+    skills: ["HR Operations", "Employee Relations", "Onboarding", "Excel", "HRMS"],
+    openings: 1,
+    description: "TCS is hiring an experienced HR Operations Manager to lead the regional human resource operations, oversee employee engagement programs, and manage onboarding-to-retirement lifecycle processes.",
+    responsibilities: [
+      "Oversee end-to-end employee lifecycle processes including onboarding, documentation, and exits.",
+      "Manage regional employee relations, dispute resolutions, and grievance channels.",
+      "Maintain employee records in the HRMS system and generate monthly compliance reports.",
+      "Coordinate company-wide engagement initiatives, wellness workshops, and feedback cycles."
+    ],
+    requirements: [
+      "MBA in Human Resources or related post-graduate degree.",
+      "3+ years of HR operations or generalist experience in large organizations.",
+      "Deep knowledge of labor compliance laws and HR software systems.",
+      "Exceptional verbal/written communication and crisis management skills."
     ]
   }
 ];

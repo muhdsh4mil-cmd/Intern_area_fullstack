@@ -126,6 +126,42 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentView]);
 
+  // Normalize a single backend application object to the flat shape used by all frontend components
+  const normalizeApp = (app) => {
+    const candidate = app.candidate || {};
+    return {
+      ...app,
+      id: app.id || app._id,
+      // Flatten candidate fields so AdminDash / MyApplications can render them
+      candidateName: app.candidateName || candidate.name || "Unknown",
+      email: app.email || candidate.email || "",
+      // Carry profileResumeData from candidate if present
+      profileResumeData: app.profileResumeData || candidate.profileResumeData || null,
+    };
+  };
+
+  // Fetch applications from the database when user is logged in
+  useEffect(() => {
+    if (!user) {
+      setApplications([]);
+      return;
+    }
+    const loadApplications = async () => {
+      try {
+        if (user.role === "admin" || user.role === "employer") {
+          const data = await fetchAllApplications();
+          setApplications((data || []).map(normalizeApp));
+        } else if (user.role === "candidate") {
+          const data = await fetchMyApplications();
+          setApplications((data || []).map(normalizeApp));
+        }
+      } catch (err) {
+        console.error("Failed to load applications from API:", err);
+      }
+    };
+    loadApplications();
+  }, [user]);
+
   // Toast Helper
   const addToast = (message, type = "success") => {
     const id = Date.now();
@@ -268,12 +304,28 @@ export default function App() {
       addToast("Recruiters cannot apply for listings.", "info");
       return;
     }
-    // Check if already applied
-    const alreadyApplied = applications.some(
-      (a) => a.jobId === job.id && a.candidateName === user.name
-    );
+    // Check if already applied (handles populated backend job objects and local state job IDs)
+    const alreadyApplied = applications.some((a) => {
+      const targetJobId = a.jobId || (a.job && typeof a.job === "object" ? a.job._id : a.job);
+      return targetJobId === job.id;
+    });
     if (alreadyApplied) {
       addToast("You have already submitted an application for this position.", "info");
+      return;
+    }
+
+    // Client-side plan limit check
+    const PLAN_LIMITS = {
+      free: 1,
+      bronze: 3,
+      silver: 5,
+      gold: Infinity,
+    };
+    const plan = user.subscriptionPlan || "free";
+    const limit = PLAN_LIMITS[plan] || 1;
+    if (applications.length >= limit) {
+      addToast(`You have reached your ${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan limit of ${limit} application(s) this month. Go to Plans to upgrade! 🚀`, "info");
+      setView("pricing");
       return;
     }
 
@@ -295,43 +347,35 @@ export default function App() {
 
     try {
       // Try real API first
-      await submitApplication({
+      const savedApp = await submitApplication({
         jobId: selectedApplyJob._id || selectedApplyJob.id,
         coverLetter: coverLetterText,
         resumeUrl: user.resumeUrl || "resume_profile.pdf",
         customResumeName: customResumeMeta?.name ?? "",
       });
 
-      // Also update local state for UI
-      const newApp = {
-        id: `app-custom-${Date.now()}`,
-        jobId: selectedApplyJob._id || selectedApplyJob.id,
-        candidateName: user.name,
-        email: user.email,
-        resumeUrl: user.resumeUrl || "resume_profile.pdf",
-        coverLetter: coverLetterText,
-        customResumeName: customResumeMeta?.name ?? null,
+      // Use normalized backend response to update local state
+      const newApp = normalizeApp({
+        ...savedApp,
+        // Attach customResumeDataUrl (client-only field, not stored in DB)
         customResumeDataUrl: customResumeMeta?.dataUrl ?? null,
-        status: "Applied",
-        appliedDate: new Date().toLocaleDateString("en-US", {
-          month: "short", day: "numeric", year: "numeric",
-        }),
-        timeline: [{ status: "Applied", date: "Just now", note: "Application submitted." }],
-      };
+      });
       setApplications((prev) => [newApp, ...prev]);
     } catch (err) {
       // If already applied or plan limit reached
       const errMsg = err.response?.data?.message || "";
       if (errMsg.includes("already applied")) {
         addToast("You have already applied for this position.", "info");
-        return;
+        setActiveModal(null);
+        throw err;
       }
       if (err.response?.status === 403 && (errMsg.includes("limit") || errMsg.includes("Plan"))) {
         addToast(`${errMsg} Go to Plans to upgrade! 🚀`, "info");
         setView("pricing");
-        return;
+        setActiveModal(null);
+        throw err;
       }
-      // Offline fallback — still add to local state
+      // Offline fallback — still add to local state with flat fields
       const newApp = {
         id: `app-custom-${Date.now()}`,
         jobId: selectedApplyJob._id || selectedApplyJob.id,

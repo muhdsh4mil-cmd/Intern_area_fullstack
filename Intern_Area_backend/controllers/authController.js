@@ -290,6 +290,10 @@ const updateProfile = asyncHandler(async (req, res) => {
   user.avatar = req.body.avatar || user.avatar;
   user.company = req.body.company || user.company;
 
+  if (req.body.profileResumeData !== undefined) {
+    user.profileResumeData = req.body.profileResumeData;
+  }
+
   if (req.body.password) {
     user.password = req.body.password;
   }
@@ -712,6 +716,39 @@ const getAllLoginHistory = asyncHandler(async (req, res) => {
   res.json(allHistories);
 });
 
+// @desc    Delete a single login audit log entry (Admin only)
+// @route   DELETE /api/auth/login-history/:userId/:entryId
+// @access  Private/Admin
+const deleteLoginEntry = asyncHandler(async (req, res) => {
+  const { userId, entryId } = req.params;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  const entryExists = user.loginHistory.id(entryId);
+  if (!entryExists) {
+    res.status(404);
+    throw new Error("Login history entry not found");
+  }
+
+  // Pull the subdocument by its _id
+  user.loginHistory.pull({ _id: entryId });
+  await user.save({ validateBeforeSave: false });
+
+  res.json({ message: "Login history entry deleted successfully" });
+});
+
+// @desc    Clear ALL login history across all users (Admin only)
+// @route   DELETE /api/auth/all-login-history
+// @access  Private/Admin
+const clearAllLoginHistory = asyncHandler(async (req, res) => {
+  await User.updateMany({}, { $set: { loginHistory: [] } });
+  res.json({ message: "All login history records have been cleared successfully" });
+});
+
 module.exports = {
   registerUser,
   loginUser,
@@ -723,5 +760,7 @@ module.exports = {
   verifyOTPAndReset,
   verifyLoginOTP,
   getLoginHistory,
-  getAllLoginHistory
+  getAllLoginHistory,
+  deleteLoginEntry,
+  clearAllLoginHistory,
 };

@@ -94,9 +94,14 @@ const applyForJob = asyncHandler(async (req, res) => {
   });
 
   await application.populate("job", "title company location");
-  await application.populate("candidate", "name email");
+  await application.populate("candidate", "name email avatar profileResumeData");
 
-  res.status(201).json(application);
+  const appObj = application.toObject();
+  if (appObj.candidate && appObj.candidate.profileResumeData) {
+    appObj.profileResumeData = appObj.candidate.profileResumeData;
+  }
+
+  res.status(201).json(appObj);
 });
 
 // @desc    Get my applications (candidate)
@@ -105,9 +110,18 @@ const applyForJob = asyncHandler(async (req, res) => {
 const getMyApplications = asyncHandler(async (req, res) => {
   const applications = await Application.find({ candidate: req.user._id })
     .populate("job", "title company location type salary category")
+    .populate("candidate", "name email avatar profileResumeData")
     .sort({ createdAt: -1 });
 
-  res.json(applications);
+  const results = applications.map((app) => {
+    const appObj = app.toObject();
+    if (appObj.candidate && appObj.candidate.profileResumeData) {
+      appObj.profileResumeData = appObj.candidate.profileResumeData;
+    }
+    return appObj;
+  });
+
+  res.json(results);
 });
 
 // @desc    Get all applications (admin) OR applications for employer's jobs
@@ -120,7 +134,7 @@ const getAllApplications = asyncHandler(async (req, res) => {
     // Admin sees everything
     applications = await Application.find()
       .populate("job", "title company location type")
-      .populate("candidate", "name email avatar")
+      .populate("candidate", "name email avatar profileResumeData")
       .sort({ createdAt: -1 });
   } else if (req.user.role === "employer") {
     // Employer sees applications for their jobs only
@@ -128,14 +142,22 @@ const getAllApplications = asyncHandler(async (req, res) => {
     const myJobIds = myJobs.map((j) => j._id);
     applications = await Application.find({ job: { $in: myJobIds } })
       .populate("job", "title company location type")
-      .populate("candidate", "name email avatar")
+      .populate("candidate", "name email avatar profileResumeData")
       .sort({ createdAt: -1 });
   } else {
     res.status(403);
     throw new Error("Not authorized to view all applications");
   }
 
-  res.json(applications);
+  const results = applications.map((app) => {
+    const appObj = app.toObject();
+    if (appObj.candidate && appObj.candidate.profileResumeData) {
+      appObj.profileResumeData = appObj.candidate.profileResumeData;
+    }
+    return appObj;
+  });
+
+  res.json(results);
 });
 
 // @desc    Update application status
@@ -168,9 +190,14 @@ const updateApplicationStatus = asyncHandler(async (req, res) => {
 
   const updated = await application.save();
   await updated.populate("job", "title company");
-  await updated.populate("candidate", "name email");
+  await updated.populate("candidate", "name email avatar profileResumeData");
 
-  res.json(updated);
+  const appObj = updated.toObject();
+  if (appObj.candidate && appObj.candidate.profileResumeData) {
+    appObj.profileResumeData = appObj.candidate.profileResumeData;
+  }
+
+  res.json(appObj);
 });
 
 // @desc    Delete an application

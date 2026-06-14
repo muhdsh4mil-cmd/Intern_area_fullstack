@@ -7,7 +7,10 @@ const connectDB = require("./config/db");
 dotenv.config();
 
 // Connect to MongoDB
-connectDB();
+connectDB().then(() => {
+  const seedMockJobs = require("./scripts/seedMockJobs");
+  seedMockJobs();
+});
 
 const app = express();
 

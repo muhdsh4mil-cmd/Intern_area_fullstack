@@ -144,9 +144,9 @@ export default function EmployerPortal({
               {applications.length > 0 ? (
                 <div className="divide-y divide-slate-50">
                   {applications.map((app) => {
-                    const job = mockJobs.find((j) => j.id === app.jobId) || {
+                    const job = (app.job && typeof app.job === "object") ? app.job : (mockJobs.find((j) => j.id === app.jobId || j._id === app.job || j.id === app.job) || {
                       title: "Custom Position",
-                    };
+                    });
                     
                     return (
                       <div
@@ -205,7 +205,7 @@ export default function EmployerPortal({
                   <p className="text-xs text-slate-400 font-medium">{selectedApp.email}</p>
                   <div className="mt-3 bg-slate-50 border border-slate-100 rounded-lg p-2.5 text-[11px] text-slate-500">
                     <span className="font-bold block text-slate-600 mb-0.5">Applied Position:</span>
-                    {mockJobs.find((j) => j.id === selectedApp.jobId)?.title}
+                    {selectedApp.job && typeof selectedApp.job === "object" ? selectedApp.job.title : (mockJobs.find((j) => j.id === selectedApp.jobId || j._id === selectedApp.job || j.id === selectedApp.job)?.title)}
                   </div>
                 </div>
 
